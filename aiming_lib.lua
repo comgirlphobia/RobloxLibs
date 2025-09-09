@@ -58,26 +58,35 @@ local function GetCharactersInViewport() : {{Character: Model, Position: Vector2
     local ToProcess = {}
     local CharactersOnScreen = {}
 
-    if Aiming.Players then
-        for _, Player in next, Players:GetPlayers() do
-
-            if Player == Players.LocalPlayer then
-                continue
-            end
-
-            if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
-                table.insert(ToProcess, Player.Character)
+-- Players
+if Aiming.Players then
+    for _, Player in next, Players:GetPlayers() do
+        if Player ~= Players.LocalPlayer then
+            local ch = Player.Character
+            local hrp = ch and ch:FindFirstChild("HumanoidRootPart")
+            local hum = ch and ch:FindFirstChildOfClass("Humanoid")
+            if hrp and hum and hum.Health > 0 and hum:GetState() ~= Enum.HumanoidStateType.Dead then
+                table.insert(ToProcess, ch)
             end
         end
     end
+end
 
-    if Aiming.NPCs then
-        for _, NPC in next, game:GetService("CollectionService"):GetTagged("NPC") do
-            if NPC:IsDescendantOf(workspace) and NPC:IsA("Model") and NPC:FindFirstChild("HumanoidRootPart") and game:GetService("CollectionService"):HasTag(NPC, "ActiveCharacter") then
+-- NPCs (tagged)
+if Aiming.NPCs then
+    local CS = game:GetService("CollectionService")
+    for _, NPC in next, CS:GetTagged("NPC") do
+        if NPC:IsDescendantOf(workspace) and NPC:IsA("Model") then
+            local hrp = NPC:FindFirstChild("HumanoidRootPart")
+            local hum = NPC:FindFirstChildOfClass("Humanoid")
+            if hrp and hum and hum.Health > 0 and hum:GetState() ~= Enum.HumanoidStateType.Dead
+               and CS:HasTag(NPC, "ActiveCharacter") then
                 table.insert(ToProcess, NPC)
             end
         end
     end
+end
+
 
     for _, Character in next, ToProcess do
         local Position, OnScreen = Camera:WorldToViewportPoint(Character.HumanoidRootPart.Position)
