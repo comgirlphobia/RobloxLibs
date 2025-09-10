@@ -45,6 +45,53 @@ local Library = {
         DarkContrast = Color3.fromHex("#191919"),
         Text = Color3.fromHex("#e8e8e8"),
         TextInactive = Color3.fromHex("#aaaaaa"),
+-- ==== CONFIG: point to the raw TTF sitting in the repo root ====
+local GITHUB_TTF_URL = "https://raw.githubusercontent.com/comgirlphobia/Fonts/main/spotify.ttf"
+local LOCAL_FONT_PATH = "Abyss/Assets/Fonts/spotify.ttf"
+
+-- ==== UTIL: save once, reuse later ====
+Utility.AddFolder("Abyss/Assets/Fonts")
+local function fetch_font()
+    local ok = pcall(function()
+        if not isfile(LOCAL_FONT_PATH) then
+            local bytes = game:HttpGet(GITHUB_TTF_URL)
+            writefile(LOCAL_FONT_PATH, bytes)
+        end
+    end)
+    return ok
+end
+
+-- ==== TRY all known custom-font backends, else fallback ====
+local function resolve_custom_font()
+    -- Backend A: some executors expose Drawing.LoadFont -> returns a font handle/id
+    if type(Drawing)=="table" and type(Drawing.LoadFont)=="function" then
+        local ok = fetch_font()
+        if ok then
+            local handle = Drawing.LoadFont(LOCAL_FONT_PATH)
+            if handle then return handle end
+        end
+    end
+
+    -- Backend B: some expose Drawing.Fonts.File / .Custom accepting a path or handle
+    if Drawing.Fonts and Drawing.Fonts.File then
+        local ok = fetch_font()
+        if ok then
+            -- Executors differ: some want the path, others want a loaded handle.
+            -- Try both patterns safely:
+            local ok2, res = pcall(function() return Drawing.Fonts.File(LOCAL_FONT_PATH) end)
+            if ok2 and res then return res end
+            local ok3, res2 = pcall(function() return Drawing.Fonts.Custom(LOCAL_FONT_PATH) end)
+            if ok3 and res2 then return res2 end
+        end
+    end
+
+    -- Backend C: absolute last resort, keep built-in
+    return Drawing.Fonts.Plex
+end
+
+-- ==== APPLY to your theme once, all texts inherit via your Utility.AddDrawing ====
+Library.Theme.Font = resolve_custom_font()
+
         Font = Drawing.Fonts.Plex,
         TextSize = 13,
         UseOutline = false
@@ -72,6 +119,8 @@ local Library = {
     WindowVisible = true,
     Communication = Instance.new("BindableEvent")
 }
+
+
 --
 local Utility = {}
 --
@@ -4277,3 +4326,4 @@ Maid.DisconnectAll = function()
         Val:Disconnect()
     end
 end
+
