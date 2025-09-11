@@ -179,8 +179,18 @@ AnimeOverlay.Name = "AnimeOverlay"
 AnimeOverlay.BackgroundTransparency = 1
 AnimeOverlay.ImageTransparency = 0.5
 AnimeOverlay.Visible = false
+-- NEW
 AnimeOverlay.AnchorPoint = Vector2.new(1,1)
-AnimeOverlay.Position = UDim2.new(1, -400, 1, -20)
+local RIGHT_MARGIN, BOTTOM_MARGIN = 20, 20
+local function placeAnime()
+    AnimeOverlay.Position = UDim2.new(1, -RIGHT_MARGIN, 1, -BOTTOM_MARGIN)
+end
+placeAnime()
+local cam = workspace.CurrentCamera
+if cam then
+    cam:GetPropertyChangedSignal("ViewportSize"):Connect(placeAnime)
+end
+
 AnimeOverlay.Size = UDim2.fromOffset(415, 601)
 AnimeOverlay.ScaleType = Enum.ScaleType.Fit
 AnimeOverlay.Parent = ScreenGui
