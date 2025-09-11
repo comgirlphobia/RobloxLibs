@@ -61,56 +61,6 @@ ScreenGui.DisplayOrder = 999;
 ScreenGui.ResetOnSpawn = false;
 ParentUI(ScreenGui);
 
--- === Anime overlay bootstrap ===
-Library.Anime = Library.Anime or { Map = {}, Sizes = {} }
-
-local AnimeOverlay = Instance.new("ImageLabel")
-AnimeOverlay.Name = "AnimeOverlay"
-AnimeOverlay.BackgroundTransparency = 1
-AnimeOverlay.ImageTransparency = 0.5
-AnimeOverlay.Visible = false
-AnimeOverlay.AnchorPoint = Vector2.new(1,1)
-AnimeOverlay.Position = UDim2.new(1, -400, 1, -20)
-AnimeOverlay.Size = UDim2.fromOffset(415, 601)
-AnimeOverlay.ScaleType = Enum.ScaleType.Fit
-AnimeOverlay.Parent = ScreenGui
-
-function Library:RegisterAnime(name, urlOrAsset, size)
-    local path = ("Linora/Assets/UI/%s.png"):format(name)
-    if Utility and Utility.AddImage then
-        self.Anime.Map[name] = Utility.AddImage(path, urlOrAsset)
-    else
-        if not isfolder("Linora") then makefolder("Linora") end
-        if not isfolder("Linora/Assets") then makefolder("Linora/Assets") end
-        if not isfolder("Linora/Assets/UI") then makefolder("Linora/Assets/UI") end
-        if type(urlOrAsset)=="string" and urlOrAsset:match("^https?://") and not isfile(path) then
-            writefile(path, game:HttpGet(urlOrAsset))
-        end
-        local getasset = getcustomasset or getsynasset
-        self.Anime.Map[name] = getasset and getasset(path) or urlOrAsset
-    end
-    self.Anime.Sizes[name] = size or Vector2.new(415,601)
-end
-
-function Library.ChangeAnime(name)
-    local img = Library.Anime.Map[name]; if not img then return end
-    local sz  = Library.Anime.Sizes[name] or Vector2.new(415,601)
-    AnimeOverlay.Image = img
-    AnimeOverlay.Size  = UDim2.fromOffset(sz.X, sz.Y)
-end
-
-function Library.ToggleAnime(state)
-    if state and not AnimeOverlay.Image then
-        for k in pairs(Library.Anime.Map) do Library.ChangeAnime(k) break end
-    end
-    AnimeOverlay.Visible = state and true or false
-end
-
--- default entry
-Library:RegisterAnime('Asuka', 'https://i.imgur.com/3hwztNM.png', Vector2.new(415,601))
-
-
-
 
 
 local ModalScreenGui = Instance.new("ScreenGui");
@@ -220,6 +170,74 @@ local Library = {
     Labels = Labels;
     Buttons = Buttons;
 };
+
+-- === Anime overlay (Linora) ===
+Library.Anime = { Map = {}, Sizes = {} }
+
+local AnimeOverlay = Instance.new("ImageLabel")
+AnimeOverlay.Name = "AnimeOverlay"
+AnimeOverlay.BackgroundTransparency = 1
+AnimeOverlay.ImageTransparency = 0.5
+AnimeOverlay.Visible = false
+AnimeOverlay.AnchorPoint = Vector2.new(1,1)
+AnimeOverlay.Position = UDim2.new(1, -400, 1, -20)
+AnimeOverlay.Size = UDim2.fromOffset(415, 601)
+AnimeOverlay.ScaleType = Enum.ScaleType.Fit
+AnimeOverlay.Parent = ScreenGui
+
+local function fetchImage(targetPath, src)
+    local isfile = isfile or function() return false end
+    local writefile = writefile
+    local makefolder = makefolder or function() end
+    local getasset = getcustomasset or getsynasset
+    makefolder("Linora"); makefolder("Linora/Assets"); makefolder("Linora/Assets/UI")
+
+    -- rbx asset id support
+    if typeof(src) == "number" or (typeof(src) == "string" and src:match("^rbxassetid://")) then
+        local id = tostring(src):gsub("rbxassetid://","")
+        return "rbxassetid://"..id
+    end
+
+    -- plain url fallback
+    if (getasset and writefile) then
+        if not isfile(targetPath) then
+            writefile(targetPath, game:HttpGet(src))
+        end
+        return getasset(targetPath)
+    end
+    return src
+end
+
+function Library:RegisterAnime(name, urlOrAsset, size)
+    local path = ("Linora/Assets/UI/%s.png"):format(name)
+    self.Anime.Map[name]   = fetchImage(path, urlOrAsset)
+    self.Anime.Sizes[name] = size or Vector2.new(415, 601)
+end
+
+function Library:GetAnimeList()
+    local t = {}
+    for k in pairs(self.Anime.Map) do t[#t+1] = k end
+    table.sort(t)
+    return t
+end
+
+function Library.ChangeAnime(name)
+    local img = Library.Anime.Map[name]; if not img then return end
+    local sz  = Library.Anime.Sizes[name] or Vector2.new(415, 601)
+    AnimeOverlay.Image = img
+    AnimeOverlay.Size  = UDim2.fromOffset(sz.X, sz.Y)
+end
+
+function Library.ToggleAnime(state)
+    if state and not AnimeOverlay.Image then
+        for k in pairs(Library.Anime.Map) do Library.ChangeAnime(k) break end
+    end
+    AnimeOverlay.Visible = state and true or false
+end
+
+-- default entry
+Library:RegisterAnime('Asuka', 'https://i.imgur.com/3hwztNM.png', Vector2.new(415,601))
+
 
 if RunService:IsStudio() then
    Library.IsMobile = InputService.TouchEnabled and not InputService.MouseEnabled 
