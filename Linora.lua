@@ -249,6 +249,7 @@ end
 
 -- default entry
 Library:RegisterAnime('Asuka', 'https://i.imgur.com/3hwztNM.png', Vector2.new(415,601))
+Library:RegisterAnime('KonekoAndXenovia', 'https://pleasedontleave.me/cdn/cmf7mxgcz0000zue0vi430evl/1757571979970_20250910_231509.png', Vector2.new(415,601))
 
 
 if RunService:IsStudio() then
