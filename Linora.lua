@@ -75,9 +75,9 @@ AnimeOverlay.Size = UDim2.fromOffset(415, 601)
 AnimeOverlay.ScaleType = Enum.ScaleType.Fit
 AnimeOverlay.Parent = ScreenGui
 
+-- cache downloader; uses your Utility.AddImage so files land in Linora/Assets/UI
 function Library:RegisterAnime(name, urlOrAsset, size)
     local path = ("Linora/Assets/UI/%s.png"):format(name)
-    -- uses your Utility.AddImage: downloads once, returns asset id
     local img = Utility.AddImage(path, urlOrAsset)
     self.Anime.Map[name]   = img
     self.Anime.Sizes[name] = size or Vector2.new(415, 601)
@@ -91,9 +91,16 @@ function Library.ChangeAnime(name)
 end
 
 function Library.ToggleAnime(state)
-    AnimeOverlay.Visible = not not state
+    if state and not AnimeOverlay.Image then
+        -- pick the first registered image as default
+        for k in pairs(Library.Anime.Map) do Library.ChangeAnime(k) break end
+    end
+    AnimeOverlay.Visible = state and true or false
 end
--- =================================
+
+-- default entry so dropdown has something real
+Library:RegisterAnime('Asuka', 'https://i.imgur.com/3hwztNM.png', Vector2.new(415,601))
+
 
 
 
