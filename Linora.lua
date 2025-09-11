@@ -70,36 +70,45 @@ AnimeOverlay.BackgroundTransparency = 1
 AnimeOverlay.ImageTransparency = 0.5
 AnimeOverlay.Visible = false
 AnimeOverlay.AnchorPoint = Vector2.new(1,1)
-AnimeOverlay.Position = UDim2.new(1, -400, 1, -20) -- bottom-right
+AnimeOverlay.Position = UDim2.new(1, -400, 1, -20)
 AnimeOverlay.Size = UDim2.fromOffset(415, 601)
 AnimeOverlay.ScaleType = Enum.ScaleType.Fit
 AnimeOverlay.Parent = ScreenGui
 
--- cache downloader; uses your Utility.AddImage so files land in Linora/Assets/UI
 function Library:RegisterAnime(name, urlOrAsset, size)
     local path = ("Linora/Assets/UI/%s.png"):format(name)
-    local img = Utility.AddImage(path, urlOrAsset)
-    self.Anime.Map[name]   = img
-    self.Anime.Sizes[name] = size or Vector2.new(415, 601)
+    if Utility and Utility.AddImage then
+        self.Anime.Map[name] = Utility.AddImage(path, urlOrAsset)
+    else
+        if not isfolder("Linora") then makefolder("Linora") end
+        if not isfolder("Linora/Assets") then makefolder("Linora/Assets") end
+        if not isfolder("Linora/Assets/UI") then makefolder("Linora/Assets/UI") end
+        if type(urlOrAsset)=="string" and urlOrAsset:match("^https?://") and not isfile(path) then
+            writefile(path, game:HttpGet(urlOrAsset))
+        end
+        local getasset = getcustomasset or getsynasset
+        self.Anime.Map[name] = getasset and getasset(path) or urlOrAsset
+    end
+    self.Anime.Sizes[name] = size or Vector2.new(415,601)
 end
 
 function Library.ChangeAnime(name)
     local img = Library.Anime.Map[name]; if not img then return end
-    local sz  = Library.Anime.Sizes[name] or Vector2.new(415, 601)
+    local sz  = Library.Anime.Sizes[name] or Vector2.new(415,601)
     AnimeOverlay.Image = img
     AnimeOverlay.Size  = UDim2.fromOffset(sz.X, sz.Y)
 end
 
 function Library.ToggleAnime(state)
     if state and not AnimeOverlay.Image then
-        -- pick the first registered image as default
         for k in pairs(Library.Anime.Map) do Library.ChangeAnime(k) break end
     end
     AnimeOverlay.Visible = state and true or false
 end
 
--- default entry so dropdown has something real
+-- default entry
 Library:RegisterAnime('Asuka', 'https://i.imgur.com/3hwztNM.png', Vector2.new(415,601))
+
 
 
 
