@@ -61,67 +61,40 @@ ScreenGui.DisplayOrder = 999;
 ScreenGui.ResetOnSpawn = false;
 ParentUI(ScreenGui);
 
--- === Anime overlay (Linora) ==============================================
-local HttpGet = game.HttpGet
-local BASE_FOLDER = "Linora/Assets/UI"
-
-local function ensure(path)
-    local parts, acc = {}, ""
-    for seg in string.gmatch(path, "[^/]+") do table.insert(parts, seg) end
-    for i = 1, #parts - 1 do
-        acc = acc == "" and parts[i] or (acc .. "/" .. parts[i])
-        if isfolder and not isfolder(acc) then makefolder(acc) end
-    end
-end
-
-local function addImage(localPath, urlOrAsset)
-    ensure(localPath)
-    if typeof(urlOrAsset) == "string" and urlOrAsset:match("^https?://") then
-        if isfile and not isfile(localPath) then
-            writefile(localPath, game:HttpGet(urlOrAsset))
-        end
-        local getasset = getcustomasset or getsynasset
-        return getasset and getasset(localPath) or urlOrAsset
-    else
-        -- already a rbxassetid:// or customasset id
-        return urlOrAsset
-    end
-end
-
+-- === Anime overlay bootstrap ===
 Library.Anime = Library.Anime or { Map = {}, Sizes = {} }
 
-function Library:RegisterAnime(name, urlOrAsset, size)
-    local lp = string.format("%s/%s.png", BASE_FOLDER, name)
-    Library.Anime.Map[name] = addImage(lp, urlOrAsset)
-    Library.Anime.Sizes[name] = size or Vector2.new(415, 601)
-end
-
--- preload one default
-Library:RegisterAnime("Asuka", "https://i.imgur.com/3hwztNM.png", Vector2.new(415, 601))
-
--- overlay
 local AnimeOverlay = Instance.new("ImageLabel")
+AnimeOverlay.Name = "AnimeOverlay"
 AnimeOverlay.BackgroundTransparency = 1
 AnimeOverlay.ImageTransparency = 0.5
 AnimeOverlay.Visible = false
-AnimeOverlay.ScaleType = Enum.ScaleType.Fit
-AnimeOverlay.AnchorPoint = Vector2.new(1, 1)
+AnimeOverlay.AnchorPoint = Vector2.new(1,1)
+AnimeOverlay.Position = UDim2.new(1, -400, 1, -20) -- bottom-right
 AnimeOverlay.Size = UDim2.fromOffset(415, 601)
-AnimeOverlay.Position = UDim2.new(1, -400, 1, -20) -- bottom-right, 20px margin
+AnimeOverlay.ScaleType = Enum.ScaleType.Fit
 AnimeOverlay.Parent = ScreenGui
 
+function Library:RegisterAnime(name, urlOrAsset, size)
+    local path = ("Linora/Assets/UI/%s.png"):format(name)
+    -- uses your Utility.AddImage: downloads once, returns asset id
+    local img = Utility.AddImage(path, urlOrAsset)
+    self.Anime.Map[name]   = img
+    self.Anime.Sizes[name] = size or Vector2.new(415, 601)
+end
+
 function Library.ChangeAnime(name)
-    local img = Library.Anime.Map[name]
-    if not img then return end
-    local sz = Library.Anime.Sizes[name] or Vector2.new(415, 601)
+    local img = Library.Anime.Map[name]; if not img then return end
+    local sz  = Library.Anime.Sizes[name] or Vector2.new(415, 601)
     AnimeOverlay.Image = img
-    AnimeOverlay.Size = UDim2.fromOffset(sz.X, sz.Y)
+    AnimeOverlay.Size  = UDim2.fromOffset(sz.X, sz.Y)
 end
 
 function Library.ToggleAnime(state)
-    AnimeOverlay.Visible = state and true or false
+    AnimeOverlay.Visible = not not state
 end
--- =======================================================================
+-- =================================
+
 
 
 local ModalScreenGui = Instance.new("ScreenGui");
