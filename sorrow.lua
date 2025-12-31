@@ -58,6 +58,16 @@ local function pulse(btn)
     end)
 end
 
+local function btnState(btn, state)
+    if state == "idle" then
+        tween(btn, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { BackgroundColor3 = Color3.fromRGB(28, 28, 34) })
+    elseif state == "hover" then
+        tween(btn, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { BackgroundColor3 = Color3.fromRGB(36, 36, 44) })
+    elseif state == "press" then
+        tween(btn, TweenInfo.new(0.08, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { BackgroundColor3 = Color3.fromRGB(44, 44, 54) })
+    end
+end
+
 local function draggable(handle, target)
     local drag, start, pos
     handle.InputBegan:Connect(function(i)
@@ -221,7 +231,22 @@ function UI:CreateWindow(opts)
         end
     end)
 
-    local api = { _accent = accent, _content = content, _tabList = tabList, _tabs = {}, _current = nil }
+    local api = { _accent = accent, _accentTargets = {}, _content = content, _tabList = tabList, _tabs = {}, _current = nil }
+
+    function api:_bindAccent(inst, prop)
+        table.insert(self._accentTargets, { inst = inst, prop = prop })
+        pcall(function() inst[prop] = self._accent end)
+    end
+
+    function api:SetAccent(color)
+        if typeof(color) ~= "Color3" then return end
+        self._accent = color
+        for _, t in ipairs(self._accentTargets) do
+            if t.inst and t.inst.Parent then
+                pcall(function() t.inst[t.prop] = color end)
+            end
+        end
+    end
 
     function api:Notify(text, duration)
         duration = tonumber(duration) or 3
@@ -230,6 +255,7 @@ function UI:CreateWindow(opts)
         stroke(card, 1, Color3.fromRGB(70, 70, 84), 0.55)
         local bar = mk("Frame", { Size = UDim2.new(0, 4, 1, 0), BackgroundColor3 = accent, BorderSizePixel = 0, Parent = card, ZIndex = 102 })
         corner(bar, 14)
+        api:_bindAccent(bar, "BackgroundColor3")
         mk("TextLabel", {
             BackgroundTransparency = 1,
             Position = UDim2.fromOffset(14, 10),
@@ -313,6 +339,7 @@ function UI:CreateWindow(opts)
             Parent = btn,
         })
         corner(accentBar, 10)
+        api:_bindAccent(accentBar, "BackgroundColor3")
 
         local frame = mk("Frame", { BackgroundTransparency = 1, Size = UDim2.new(1, 0, 1, 0), Parent = content, Visible = false })
         local scroll = makeScroll(frame)
@@ -353,6 +380,10 @@ function UI:CreateWindow(opts)
                 local b = mk("TextButton", { Size = UDim2.new(1, 0, 0, 38), BackgroundColor3 = Color3.fromRGB(28, 28, 34), BorderSizePixel = 0, AutoButtonColor = false, Font = Enum.Font.GothamSemibold, Text = tostring(text), TextSize = 13, TextColor3 = Color3.fromRGB(235, 235, 245), Parent = inner })
                 corner(b, 12)
                 stroke(b, 1, Color3.fromRGB(70, 70, 84), 0.7)
+                b.MouseEnter:Connect(function() btnState(b, "hover") end)
+                b.MouseLeave:Connect(function() btnState(b, "idle") end)
+                b.MouseButton1Down:Connect(function() btnState(b, "press") end)
+                b.MouseButton1Up:Connect(function() btnState(b, "hover") end)
                 b.MouseButton1Click:Connect(function()
                     pulse(b)
                     if typeof(cb) == "function" then task.spawn(cb) end
@@ -378,12 +409,14 @@ function UI:CreateWindow(opts)
 
                 local function render()
                     if state then
-                        tween(dot, TweenInfo.new(0.14, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { Position = UDim2.new(1, -20, 0.5, 0), BackgroundColor3 = accent })
+                        tween(dot, TweenInfo.new(0.14, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { Position = UDim2.new(1, -20, 0.5, 0), BackgroundColor3 = api._accent })
                     else
                         tween(dot, TweenInfo.new(0.14, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { Position = UDim2.new(0, 2, 0.5, 0), BackgroundColor3 = Color3.fromRGB(140, 140, 160) })
                     end
                 end
                 render()
+
+                api:_bindAccent(dot, "BackgroundColor3")
 
                 click.MouseButton1Click:Connect(function()
                     state = not state
@@ -431,6 +464,261 @@ function UI:CreateWindow(opts)
                 }
             end
 
+            function sApi:AddDropdown(text, values, defaultIndex, onChanged)
+                values = values or {}
+                local selected = values[defaultIndex or 1]
+
+                local row = mk("Frame", { Size = UDim2.new(1, 0, 0, 38), BackgroundColor3 = Color3.fromRGB(28, 28, 34), BorderSizePixel = 0, Parent = inner })
+                corner(row, 12)
+                stroke(row, 1, Color3.fromRGB(70, 70, 84), 0.7)
+                mk("TextLabel", { BackgroundTransparency = 1, Position = UDim2.fromOffset(12, 0), Size = UDim2.new(0.45, -12, 1, 0), Font = Enum.Font.GothamSemibold, Text = tostring(text), TextSize = 13, TextColor3 = Color3.fromRGB(235, 235, 245), TextXAlignment = Enum.TextXAlignment.Left, Parent = row })
+
+                local btn = mk("TextButton", {
+                    AnchorPoint = Vector2.new(1, 0.5),
+                    Position = UDim2.new(1, -12, 0.5, 0),
+                    Size = UDim2.new(0.55, -12, 0, 26),
+                    BackgroundColor3 = Color3.fromRGB(18, 18, 22),
+                    BorderSizePixel = 0,
+                    AutoButtonColor = false,
+                    Font = Enum.Font.Gotham,
+                    Text = tostring(selected or "-"),
+                    TextSize = 12,
+                    TextColor3 = Color3.fromRGB(235, 235, 245),
+                    Parent = row,
+                })
+                corner(btn, 10)
+
+                local menu = mk("Frame", {
+                    AnchorPoint = Vector2.new(1, 0),
+                    Position = UDim2.new(1, -12, 1, 6),
+                    Size = UDim2.new(0.55, -12, 0, 0),
+                    BackgroundColor3 = Color3.fromRGB(14, 14, 16),
+                    BorderSizePixel = 0,
+                    Parent = row,
+                    Visible = false,
+                    ClipsDescendants = true,
+                    ZIndex = 30,
+                })
+                corner(menu, 12)
+                stroke(menu, 1, Color3.fromRGB(70, 70, 84), 0.6)
+
+                local sc = mk("ScrollingFrame", {
+                    BackgroundTransparency = 1,
+                    BorderSizePixel = 0,
+                    Size = UDim2.new(1, 0, 1, 0),
+                    CanvasSize = UDim2.new(0, 0, 0, 0),
+                    ScrollBarThickness = 3,
+                    ScrollBarImageColor3 = Color3.fromRGB(80, 80, 96),
+                    Parent = menu,
+                    ZIndex = 31,
+                })
+                pad(sc, 10)
+                local lay = vlist(sc, 8)
+                lay:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+                    sc.CanvasSize = UDim2.new(0, 0, 0, lay.AbsoluteContentSize.Y + 10)
+                end)
+
+                local open = false
+                local function closeMenu()
+                    if not open then return end
+                    open = false
+                    tween(menu, TweenInfo.new(0.14, Enum.EasingStyle.Quad, Enum.EasingDirection.In), { Size = UDim2.new(0.55, -12, 0, 0) })
+                    task.delay(0.15, function()
+                        if not open and menu and menu.Parent then
+                            menu.Visible = false
+                        end
+                    end)
+                end
+                local function openMenu()
+                    if open then return end
+                    open = true
+                    menu.Visible = true
+                    local height = math.min(200, lay.AbsoluteContentSize.Y + 20)
+                    menu.Size = UDim2.new(0.55, -12, 0, 0)
+                    tween(menu, TweenInfo.new(0.16, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { Size = UDim2.new(0.55, -12, 0, height) })
+                end
+
+                btn.MouseEnter:Connect(function() tween(btn, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { BackgroundColor3 = Color3.fromRGB(22, 22, 28) }) end)
+                btn.MouseLeave:Connect(function() tween(btn, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { BackgroundColor3 = Color3.fromRGB(18, 18, 22) }) end)
+
+                btn.MouseButton1Click:Connect(function()
+                    pulse(btn)
+                    if open then closeMenu() else openMenu() end
+                end)
+
+                local function rebuildOptions(newValues)
+                    for _, ch in ipairs(sc:GetChildren()) do
+                        if ch:IsA("TextButton") then ch:Destroy() end
+                    end
+                    for _, v in ipairs(newValues) do
+                        local opt = mk("TextButton", { Size = UDim2.new(1, 0, 0, 30), BackgroundColor3 = Color3.fromRGB(28, 28, 34), BorderSizePixel = 0, AutoButtonColor = false, Font = Enum.Font.Gotham, Text = tostring(v), TextSize = 12, TextColor3 = Color3.fromRGB(235, 235, 245), Parent = sc, ZIndex = 32 })
+                        corner(opt, 10)
+                        opt.MouseEnter:Connect(function() btnState(opt, "hover") end)
+                        opt.MouseLeave:Connect(function() btnState(opt, "idle") end)
+                        opt.MouseButton1Click:Connect(function()
+                            selected = v
+                            btn.Text = tostring(v)
+                            closeMenu()
+                            if typeof(onChanged) == "function" then task.spawn(onChanged, v) end
+                        end)
+                    end
+                end
+                rebuildOptions(values)
+
+                UserInputService.InputBegan:Connect(function(input, gp)
+                    if gp then return end
+                    if open and input.UserInputType == Enum.UserInputType.MouseButton1 then
+                        local pos = UserInputService:GetMouseLocation()
+                        local abs = menu.AbsolutePosition
+                        local size = menu.AbsoluteSize
+                        if not (pos.X >= abs.X and pos.X <= abs.X + size.X and pos.Y >= abs.Y and pos.Y <= abs.Y + size.Y) then
+                            closeMenu()
+                        end
+                    end
+                end)
+
+                return {
+                    GetValue = function() return selected end,
+                    SetValue = function(_, v) selected = v; btn.Text = tostring(v) end,
+                    SetValues = function(_, newValues)
+                        values = newValues or {}
+                        rebuildOptions(values)
+                    end,
+                }
+            end
+
+            function sApi:AddSlider(text, min, max, defaultValue, onChanged)
+                min = tonumber(min) or 0
+                max = tonumber(max) or 100
+                local value = tonumber(defaultValue)
+                if value == nil then value = min end
+                if value < min then value = min end
+                if value > max then value = max end
+
+                local row = mk("Frame", { Size = UDim2.new(1, 0, 0, 46), BackgroundColor3 = Color3.fromRGB(28, 28, 34), BorderSizePixel = 0, Parent = inner })
+                corner(row, 12)
+                stroke(row, 1, Color3.fromRGB(70, 70, 84), 0.7)
+
+                mk("TextLabel", { BackgroundTransparency = 1, Position = UDim2.fromOffset(12, 6), Size = UDim2.new(1, -24, 0, 16), Font = Enum.Font.GothamSemibold, Text = tostring(text), TextSize = 13, TextColor3 = Color3.fromRGB(235, 235, 245), TextXAlignment = Enum.TextXAlignment.Left, Parent = row })
+                local valLbl = mk("TextLabel", { BackgroundTransparency = 1, Position = UDim2.fromOffset(12, 6), Size = UDim2.new(1, -24, 0, 16), Font = Enum.Font.Gotham, Text = tostring(value), TextSize = 12, TextColor3 = Color3.fromRGB(170, 170, 190), TextXAlignment = Enum.TextXAlignment.Right, Parent = row })
+
+                local bar = mk("Frame", { Position = UDim2.fromOffset(12, 28), Size = UDim2.new(1, -24, 0, 10), BackgroundColor3 = Color3.fromRGB(18, 18, 22), BorderSizePixel = 0, Parent = row })
+                corner(bar, 8)
+
+                local fill = mk("Frame", { Size = UDim2.new((value - min) / (max - min), 0, 1, 0), BackgroundColor3 = accent, BorderSizePixel = 0, Parent = bar })
+                corner(fill, 8)
+                api:_bindAccent(fill, "BackgroundColor3")
+
+                local hit = mk("TextButton", { BackgroundTransparency = 1, Size = UDim2.new(1, 0, 1, 0), Text = "", Parent = bar })
+                local dragging = false
+
+                local function setValue(v)
+                    v = tonumber(v)
+                    if v == nil then return end
+                    if v < min then v = min end
+                    if v > max then v = max end
+                    value = v
+                    valLbl.Text = tostring(math.floor(v * 1000) / 1000)
+                    fill.Size = UDim2.new((value - min) / (max - min), 0, 1, 0)
+                    if typeof(onChanged) == "function" then task.spawn(onChanged, value) end
+                end
+
+                local function setFromX(x)
+                    local abs = bar.AbsolutePosition
+                    local sz = bar.AbsoluteSize
+                    local pct = (x - abs.X) / math.max(1, sz.X)
+                    if pct < 0 then pct = 0 end
+                    if pct > 1 then pct = 1 end
+                    setValue(min + (max - min) * pct)
+                end
+
+                hit.MouseButton1Down:Connect(function()
+                    dragging = true
+                    setFromX(UserInputService:GetMouseLocation().X)
+                end)
+                UserInputService.InputEnded:Connect(function(inp)
+                    if inp.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
+                end)
+                UserInputService.InputChanged:Connect(function(inp)
+                    if dragging and inp.UserInputType == Enum.UserInputType.MouseMovement then
+                        setFromX(UserInputService:GetMouseLocation().X)
+                    end
+                end)
+
+                return {
+                    GetValue = function() return value end,
+                    SetValue = function(_, v) setValue(v) end,
+                }
+            end
+
+            function sApi:AddKeybind(text, defaultKey, onChanged)
+                local key = defaultKey
+                local listening = false
+
+                local row = mk("Frame", { Size = UDim2.new(1, 0, 0, 38), BackgroundColor3 = Color3.fromRGB(28, 28, 34), BorderSizePixel = 0, Parent = inner })
+                corner(row, 12)
+                stroke(row, 1, Color3.fromRGB(70, 70, 84), 0.7)
+                mk("TextLabel", { BackgroundTransparency = 1, Position = UDim2.fromOffset(12, 0), Size = UDim2.new(0.55, -12, 1, 0), Font = Enum.Font.GothamSemibold, Text = tostring(text), TextSize = 13, TextColor3 = Color3.fromRGB(235, 235, 245), TextXAlignment = Enum.TextXAlignment.Left, Parent = row })
+
+                local btn = mk("TextButton", {
+                    AnchorPoint = Vector2.new(1, 0.5),
+                    Position = UDim2.new(1, -12, 0.5, 0),
+                    Size = UDim2.new(0.45, -12, 0, 26),
+                    BackgroundColor3 = Color3.fromRGB(18, 18, 22),
+                    BorderSizePixel = 0,
+                    AutoButtonColor = false,
+                    Font = Enum.Font.Gotham,
+                    Text = key and key.Name or "None",
+                    TextSize = 12,
+                    TextColor3 = Color3.fromRGB(235, 235, 245),
+                    Parent = row,
+                })
+                corner(btn, 10)
+                btn.MouseEnter:Connect(function() tween(btn, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { BackgroundColor3 = Color3.fromRGB(22, 22, 28) }) end)
+                btn.MouseLeave:Connect(function() tween(btn, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { BackgroundColor3 = Color3.fromRGB(18, 18, 22) }) end)
+
+                local conn
+                local function stopListen()
+                    listening = false
+                    if conn then conn:Disconnect() conn = nil end
+                    btn.Text = key and key.Name or "None"
+                end
+
+                local function startListen()
+                    if listening then return end
+                    listening = true
+                    btn.Text = "Press a key..."
+                    if conn then conn:Disconnect() conn=nil end
+                    conn = UserInputService.InputBegan:Connect(function(input, gp)
+                        if gp then return end
+                        if input.UserInputType == Enum.UserInputType.Keyboard then
+                            key = input.KeyCode
+                            stopListen()
+                            if typeof(onChanged) == "function" then
+                                task.spawn(onChanged, key)
+                            end
+                        end
+                    end)
+                end
+
+                btn.MouseButton1Click:Connect(function()
+                    pulse(btn)
+                    if listening then
+                        stopListen()
+                    else
+                        startListen()
+                    end
+                end)
+
+                local kApi = {}
+                function kApi:GetValue() return key end
+                function kApi:SetValue(v)
+                    key = v
+                    stopListen()
+                end
+                return kApi
+            end
+
             return sApi
         end
 
@@ -453,6 +741,12 @@ function UI:CreateWindow(opts)
     end
 
     return api
+end
+
+if getgenv then
+    pcall(function()
+        getgenv().SleekUI = UI
+    end)
 end
 
 return UI
