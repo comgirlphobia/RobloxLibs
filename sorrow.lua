@@ -4,6 +4,39 @@ local Players = game:GetService("Players")
 
 local UI = {}
 
+local DEFAULT_ACCENT = Color3.fromRGB(247, 215, 248)
+
+local function glowStroke(parent, color, thickness, transparency)
+    local s = Instance.new("UIStroke")
+    s.Thickness = thickness
+    s.Color = color
+    s.Transparency = transparency
+    s.LineJoinMode = Enum.LineJoinMode.Round
+    s.Parent = parent
+
+    local g = Instance.new("UIGradient")
+    g.Rotation = 90
+    g.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, color),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(190, 160, 255)),
+    })
+    g.Transparency = NumberSequence.new({
+        NumberSequenceKeypoint.new(0, transparency),
+        NumberSequenceKeypoint.new(1, math.clamp(transparency + 0.25, 0, 1)),
+    })
+    g.Parent = s
+
+    return s
+end
+
+local function softGradient(parent, c1, c2)
+    local g = Instance.new("UIGradient")
+    g.Rotation = 45
+    g.Color = ColorSequence.new(c1, c2)
+    g.Parent = parent
+    return g
+end
+
 local function tween(i, ti, p)
     local t = TweenService:Create(i, ti, p)
     t:Play()
@@ -60,11 +93,11 @@ end
 
 local function btnState(btn, state)
     if state == "idle" then
-        tween(btn, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { BackgroundColor3 = Color3.fromRGB(28, 28, 34) })
+        tween(btn, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { BackgroundColor3 = Color3.fromRGB(20, 16, 28) })
     elseif state == "hover" then
-        tween(btn, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { BackgroundColor3 = Color3.fromRGB(36, 36, 44) })
+        tween(btn, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { BackgroundColor3 = Color3.fromRGB(28, 22, 38) })
     elseif state == "press" then
-        tween(btn, TweenInfo.new(0.08, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { BackgroundColor3 = Color3.fromRGB(44, 44, 54) })
+        tween(btn, TweenInfo.new(0.08, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { BackgroundColor3 = Color3.fromRGB(36, 28, 48) })
     end
 end
 
@@ -101,7 +134,7 @@ end
 
 function UI:CreateWindow(opts)
     opts = opts or {}
-    local accent = opts.AccentColor or Color3.fromRGB(86, 102, 255)
+    local accent = opts.AccentColor or DEFAULT_ACCENT
     local toggleKey = opts.ToggleKey or Enum.KeyCode.RightShift
 
     local gui = rootGui(opts.GuiName or "SleekUI")
@@ -111,12 +144,13 @@ function UI:CreateWindow(opts)
         AnchorPoint = Vector2.new(0.5, 0.5),
         Position = UDim2.fromScale(0.5, 0.5),
         Size = UDim2.fromOffset(760, 520),
-        BackgroundColor3 = Color3.fromRGB(14, 14, 16),
+        BackgroundColor3 = Color3.fromRGB(12, 10, 16),
         BorderSizePixel = 0,
         Parent = gui,
     })
     corner(window, 16)
-    stroke(window, 1, Color3.fromRGB(70, 70, 84), 0.35)
+    stroke(window, 1, Color3.fromRGB(95, 85, 110), 0.55)
+    softGradient(window, Color3.fromRGB(16, 12, 24), Color3.fromRGB(10, 10, 12))
 
     window.ZIndex = 1
 
@@ -148,12 +182,13 @@ function UI:CreateWindow(opts)
         Name = "Tabs",
         Position = UDim2.fromOffset(12, 58),
         Size = UDim2.new(0, 190, 1, -70),
-        BackgroundColor3 = Color3.fromRGB(18, 18, 22),
+        BackgroundColor3 = Color3.fromRGB(14, 12, 18),
         BorderSizePixel = 0,
         Parent = window,
     })
     corner(tabs, 14)
-    stroke(tabs, 1, Color3.fromRGB(70, 70, 84), 0.55)
+    stroke(tabs, 1, Color3.fromRGB(95, 85, 110), 0.65)
+    softGradient(tabs, Color3.fromRGB(16, 12, 22), Color3.fromRGB(10, 10, 12))
     pad(tabs, 12)
 
     local tabList = mk("Frame", { Name = "List", Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1, Parent = tabs })
@@ -163,12 +198,13 @@ function UI:CreateWindow(opts)
         Name = "Content",
         Position = UDim2.fromOffset(214, 58),
         Size = UDim2.new(1, -226, 1, -70),
-        BackgroundColor3 = Color3.fromRGB(18, 18, 22),
+        BackgroundColor3 = Color3.fromRGB(14, 12, 18),
         BorderSizePixel = 0,
         Parent = window,
     })
     corner(content, 14)
-    stroke(content, 1, Color3.fromRGB(70, 70, 84), 0.55)
+    stroke(content, 1, Color3.fromRGB(95, 85, 110), 0.65)
+    softGradient(content, Color3.fromRGB(16, 12, 22), Color3.fromRGB(10, 10, 12))
 
     local notifHost = mk("Frame", {
         Name = "Notifications",
@@ -234,11 +270,17 @@ function UI:CreateWindow(opts)
         end
     end
 
+    do
+        local gs = glowStroke(window, accent, 2, 0.68)
+        api:_bindAccent(gs, "Color")
+    end
+
     function api:Notify(text, duration)
         duration = tonumber(duration) or 3
-        local card = mk("Frame", { Size = UDim2.fromOffset(320, 62), BackgroundColor3 = Color3.fromRGB(16, 16, 18), BorderSizePixel = 0, Parent = notifHost, ZIndex = 101 })
+        local card = mk("Frame", { Size = UDim2.fromOffset(320, 62), BackgroundColor3 = Color3.fromRGB(12, 10, 16), BorderSizePixel = 0, Parent = notifHost, ZIndex = 101 })
         corner(card, 14)
-        stroke(card, 1, Color3.fromRGB(70, 70, 84), 0.55)
+        stroke(card, 1, Color3.fromRGB(95, 85, 110), 0.65)
+        softGradient(card, Color3.fromRGB(16, 12, 24), Color3.fromRGB(10, 10, 12))
         local bar = mk("Frame", { Size = UDim2.new(0, 4, 1, 0), BackgroundColor3 = accent, BorderSizePixel = 0, Parent = card, ZIndex = 102 })
         corner(bar, 14)
         api:_bindAccent(bar, "BackgroundColor3")
@@ -274,10 +316,10 @@ function UI:CreateWindow(opts)
             t.frame.Visible = on
             if on then
                 tween(t.accent, TweenInfo.new(0.14, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { Size = UDim2.new(0, 4, 0, 14) })
-                tween(t.button, TweenInfo.new(0.14, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { BackgroundColor3 = Color3.fromRGB(36, 36, 44) })
+                tween(t.button, TweenInfo.new(0.14, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { BackgroundColor3 = Color3.fromRGB(28, 22, 38) })
             else
                 tween(t.accent, TweenInfo.new(0.14, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { Size = UDim2.new(0, 0, 0, 14) })
-                tween(t.button, TweenInfo.new(0.14, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { BackgroundColor3 = Color3.fromRGB(28, 28, 34) })
+                tween(t.button, TweenInfo.new(0.14, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { BackgroundColor3 = Color3.fromRGB(20, 16, 28) })
             end
         end
     end
@@ -304,7 +346,7 @@ function UI:CreateWindow(opts)
         name = tostring(name)
         local btn = mk("TextButton", {
             Size = UDim2.new(1, 0, 0, 38),
-            BackgroundColor3 = Color3.fromRGB(28, 28, 34),
+            BackgroundColor3 = Color3.fromRGB(20, 16, 28),
             BorderSizePixel = 0,
             AutoButtonColor = false,
             Font = Enum.Font.GothamSemibold,
@@ -333,9 +375,14 @@ function UI:CreateWindow(opts)
         local tabApi = { _scroll = scroll }
 
         local function section(titleText)
-            local box = mk("Frame", { BackgroundColor3 = Color3.fromRGB(14, 14, 16), BorderSizePixel = 0, Parent = scroll })
+            local box = mk("Frame", { BackgroundColor3 = Color3.fromRGB(12, 10, 16), BorderSizePixel = 0, Parent = scroll })
             corner(box, 14)
-            stroke(box, 1, Color3.fromRGB(70, 70, 84), 0.6)
+            stroke(box, 1, Color3.fromRGB(95, 85, 110), 0.7)
+            softGradient(box, Color3.fromRGB(18, 12, 28), Color3.fromRGB(10, 10, 12))
+            do
+                local gs = glowStroke(box, api._accent, 1, 0.78)
+                api:_bindAccent(gs, "Color")
+            end
 
             mk("TextLabel", {
                 BackgroundTransparency = 1,
@@ -363,30 +410,45 @@ function UI:CreateWindow(opts)
             end
 
             function sApi:AddButton(text, cb)
-                local b = mk("TextButton", { Size = UDim2.new(1, 0, 0, 38), BackgroundColor3 = Color3.fromRGB(28, 28, 34), BorderSizePixel = 0, AutoButtonColor = false, Font = Enum.Font.GothamSemibold, Text = tostring(text), TextSize = 13, TextColor3 = Color3.fromRGB(235, 235, 245), Parent = inner })
+                local b = mk("TextButton", { Size = UDim2.new(1, 0, 0, 38), BackgroundColor3 = Color3.fromRGB(20, 16, 28), BorderSizePixel = 0, AutoButtonColor = false, Font = Enum.Font.GothamSemibold, Text = tostring(text), TextSize = 13, TextColor3 = Color3.fromRGB(245, 235, 250), Parent = inner })
                 corner(b, 12)
-                stroke(b, 1, Color3.fromRGB(70, 70, 84), 0.7)
+                stroke(b, 1, Color3.fromRGB(95, 85, 110), 0.75)
+                softGradient(b, Color3.fromRGB(26, 18, 38), Color3.fromRGB(16, 14, 20))
+                do
+                    local gs = glowStroke(b, api._accent, 1, 0.85)
+                    api:_bindAccent(gs, "Color")
+                end
+
                 b.MouseEnter:Connect(function() btnState(b, "hover") end)
                 b.MouseLeave:Connect(function() btnState(b, "idle") end)
                 b.MouseButton1Down:Connect(function() btnState(b, "press") end)
                 b.MouseButton1Up:Connect(function() btnState(b, "hover") end)
+
                 b.MouseButton1Click:Connect(function()
                     pulse(b)
                     if typeof(cb) == "function" then task.spawn(cb) end
                 end)
-                return { SetText = function(_, t) b.Text = tostring(t) end }
+
+                local bApi = {}
+                function bApi:SetText(t)
+                    b.Text = tostring(t)
+                end
+                return bApi
             end
 
             function sApi:AddToggle(text, default, onChanged)
                 local state = default == true
-                local row = mk("Frame", { Size = UDim2.new(1, 0, 0, 38), BackgroundColor3 = Color3.fromRGB(28, 28, 34), BorderSizePixel = 0, Parent = inner })
+
+                local row = mk("Frame", { Size = UDim2.new(1, 0, 0, 38), BackgroundColor3 = Color3.fromRGB(20, 16, 28), BorderSizePixel = 0, Parent = inner })
                 corner(row, 12)
-                stroke(row, 1, Color3.fromRGB(70, 70, 84), 0.7)
+                stroke(row, 1, Color3.fromRGB(95, 85, 110), 0.75)
+                softGradient(row, Color3.fromRGB(26, 18, 38), Color3.fromRGB(16, 14, 20))
+
                 mk("TextLabel", { BackgroundTransparency = 1, Position = UDim2.fromOffset(12, 0), Size = UDim2.new(1, -70, 1, 0), Font = Enum.Font.GothamSemibold, Text = tostring(text), TextSize = 13, TextColor3 = Color3.fromRGB(235, 235, 245), TextXAlignment = Enum.TextXAlignment.Left, Parent = row })
 
-                local knob = mk("Frame", { AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -12, 0.5, 0), Size = UDim2.fromOffset(44, 22), BackgroundColor3 = Color3.fromRGB(20, 20, 24), BorderSizePixel = 0, Parent = row })
+                local knob = mk("Frame", { AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -12, 0.5, 0), Size = UDim2.fromOffset(44, 22), BackgroundColor3 = Color3.fromRGB(14, 12, 18), BorderSizePixel = 0, Parent = row })
                 corner(knob, 11)
-                stroke(knob, 1, Color3.fromRGB(70, 70, 84), 0.7)
+                stroke(knob, 1, Color3.fromRGB(95, 85, 110), 0.7)
 
                 local dot = mk("Frame", { AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, 2, 0.5, 0), Size = UDim2.fromOffset(18, 18), BackgroundColor3 = Color3.fromRGB(140, 140, 160), BorderSizePixel = 0, Parent = knob })
                 corner(dot, 9)
@@ -402,31 +464,33 @@ function UI:CreateWindow(opts)
                 end
                 render()
 
-                api:_bindAccent(dot, "BackgroundColor3")
-
                 click.MouseButton1Click:Connect(function()
                     state = not state
                     render()
                     if typeof(onChanged) == "function" then task.spawn(onChanged, state) end
                 end)
 
-                return {
-                    GetValue = function() return state end,
-                    SetValue = function(_, v) state = v == true; render() end,
-                }
+                local tApi = {}
+                function tApi:GetValue() return state end
+                function tApi:SetValue(v)
+                    state = v == true
+                    render()
+                end
+                return tApi
             end
 
             function sApi:AddInput(text, default, placeholder, onChanged)
-                local row = mk("Frame", { Size = UDim2.new(1, 0, 0, 38), BackgroundColor3 = Color3.fromRGB(28, 28, 34), BorderSizePixel = 0, Parent = inner })
+                local row = mk("Frame", { Size = UDim2.new(1, 0, 0, 38), BackgroundColor3 = Color3.fromRGB(20, 16, 28), BorderSizePixel = 0, Parent = inner })
                 corner(row, 12)
-                stroke(row, 1, Color3.fromRGB(70, 70, 84), 0.7)
+                stroke(row, 1, Color3.fromRGB(95, 85, 110), 0.75)
+                softGradient(row, Color3.fromRGB(26, 18, 38), Color3.fromRGB(16, 14, 20))
                 mk("TextLabel", { BackgroundTransparency = 1, Position = UDim2.fromOffset(12, 0), Size = UDim2.new(0.45, -12, 1, 0), Font = Enum.Font.GothamSemibold, Text = tostring(text), TextSize = 13, TextColor3 = Color3.fromRGB(235, 235, 245), TextXAlignment = Enum.TextXAlignment.Left, Parent = row })
 
                 local box = mk("TextBox", {
                     AnchorPoint = Vector2.new(1, 0.5),
                     Position = UDim2.new(1, -12, 0.5, 0),
                     Size = UDim2.new(0.55, -12, 0, 26),
-                    BackgroundColor3 = Color3.fromRGB(18, 18, 22),
+                    BackgroundColor3 = Color3.fromRGB(14, 12, 18),
                     BorderSizePixel = 0,
                     ClearTextOnFocus = false,
                     Font = Enum.Font.Gotham,
@@ -454,16 +518,17 @@ function UI:CreateWindow(opts)
                 values = values or {}
                 local selected = values[defaultIndex or 1]
 
-                local row = mk("Frame", { Size = UDim2.new(1, 0, 0, 38), BackgroundColor3 = Color3.fromRGB(28, 28, 34), BorderSizePixel = 0, Parent = inner })
+                local row = mk("Frame", { Size = UDim2.new(1, 0, 0, 38), BackgroundColor3 = Color3.fromRGB(20, 16, 28), BorderSizePixel = 0, Parent = inner })
                 corner(row, 12)
-                stroke(row, 1, Color3.fromRGB(70, 70, 84), 0.7)
+                stroke(row, 1, Color3.fromRGB(95, 85, 110), 0.75)
+                softGradient(row, Color3.fromRGB(26, 18, 38), Color3.fromRGB(16, 14, 20))
                 mk("TextLabel", { BackgroundTransparency = 1, Position = UDim2.fromOffset(12, 0), Size = UDim2.new(0.45, -12, 1, 0), Font = Enum.Font.GothamSemibold, Text = tostring(text), TextSize = 13, TextColor3 = Color3.fromRGB(235, 235, 245), TextXAlignment = Enum.TextXAlignment.Left, Parent = row })
 
                 local btn = mk("TextButton", {
                     AnchorPoint = Vector2.new(1, 0.5),
                     Position = UDim2.new(1, -12, 0.5, 0),
                     Size = UDim2.new(0.55, -12, 0, 26),
-                    BackgroundColor3 = Color3.fromRGB(18, 18, 22),
+                    BackgroundColor3 = Color3.fromRGB(14, 12, 18),
                     BorderSizePixel = 0,
                     AutoButtonColor = false,
                     Font = Enum.Font.Gotham,
@@ -524,8 +589,8 @@ function UI:CreateWindow(opts)
                     tween(menu, TweenInfo.new(0.16, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { Size = UDim2.new(0.55, -12, 0, height) })
                 end
 
-                btn.MouseEnter:Connect(function() tween(btn, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { BackgroundColor3 = Color3.fromRGB(22, 22, 28) }) end)
-                btn.MouseLeave:Connect(function() tween(btn, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { BackgroundColor3 = Color3.fromRGB(18, 18, 22) }) end)
+                btn.MouseEnter:Connect(function() tween(btn, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { BackgroundColor3 = Color3.fromRGB(18, 14, 22) }) end)
+                btn.MouseLeave:Connect(function() tween(btn, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { BackgroundColor3 = Color3.fromRGB(14, 12, 18) }) end)
 
                 btn.MouseButton1Click:Connect(function()
                     pulse(btn)
@@ -577,16 +642,17 @@ function UI:CreateWindow(opts)
                 values = values or {}
                 local selected = values[defaultIndex or 1]
 
-                local row = mk("Frame", { Size = UDim2.new(1, 0, 0, 38), BackgroundColor3 = Color3.fromRGB(28, 28, 34), BorderSizePixel = 0, Parent = inner })
+                local row = mk("Frame", { Size = UDim2.new(1, 0, 0, 38), BackgroundColor3 = Color3.fromRGB(20, 16, 28), BorderSizePixel = 0, Parent = inner })
                 corner(row, 12)
-                stroke(row, 1, Color3.fromRGB(70, 70, 84), 0.7)
+                stroke(row, 1, Color3.fromRGB(95, 85, 110), 0.75)
+                softGradient(row, Color3.fromRGB(26, 18, 38), Color3.fromRGB(16, 14, 20))
                 mk("TextLabel", { BackgroundTransparency = 1, Position = UDim2.fromOffset(12, 0), Size = UDim2.new(0.45, -12, 1, 0), Font = Enum.Font.GothamSemibold, Text = tostring(text), TextSize = 13, TextColor3 = Color3.fromRGB(235, 235, 245), TextXAlignment = Enum.TextXAlignment.Left, Parent = row })
 
                 local btn = mk("TextButton", {
                     AnchorPoint = Vector2.new(1, 0.5),
                     Position = UDim2.new(1, -12, 0.5, 0),
                     Size = UDim2.new(0.55, -12, 0, 26),
-                    BackgroundColor3 = Color3.fromRGB(18, 18, 22),
+                    BackgroundColor3 = Color3.fromRGB(14, 12, 18),
                     BorderSizePixel = 0,
                     AutoButtonColor = false,
                     Font = Enum.Font.Gotham,
@@ -601,7 +667,7 @@ function UI:CreateWindow(opts)
                     AnchorPoint = Vector2.new(1, 0),
                     Position = UDim2.new(1, -12, 1, 6),
                     Size = UDim2.new(0.55, -12, 0, 0),
-                    BackgroundColor3 = Color3.fromRGB(14, 14, 16),
+                    BackgroundColor3 = Color3.fromRGB(12, 10, 16),
                     BorderSizePixel = 0,
                     Parent = row,
                     Visible = false,
@@ -609,12 +675,13 @@ function UI:CreateWindow(opts)
                     ZIndex = 40,
                 })
                 corner(menu, 12)
-                stroke(menu, 1, Color3.fromRGB(70, 70, 84), 0.6)
+                stroke(menu, 1, Color3.fromRGB(95, 85, 110), 0.7)
+                softGradient(menu, Color3.fromRGB(18, 12, 28), Color3.fromRGB(10, 10, 12))
 
                 local search = mk("TextBox", {
                     Position = UDim2.fromOffset(10, 10),
                     Size = UDim2.new(1, -20, 0, 26),
-                    BackgroundColor3 = Color3.fromRGB(18, 18, 22),
+                    BackgroundColor3 = Color3.fromRGB(14, 12, 18),
                     BorderSizePixel = 0,
                     ClearTextOnFocus = false,
                     Font = Enum.Font.Gotham,
@@ -667,8 +734,8 @@ function UI:CreateWindow(opts)
                     tween(menu, TweenInfo.new(0.16, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { Size = UDim2.new(0.55, -12, 0, height) })
                 end
 
-                btn.MouseEnter:Connect(function() tween(btn, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { BackgroundColor3 = Color3.fromRGB(22, 22, 28) }) end)
-                btn.MouseLeave:Connect(function() tween(btn, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { BackgroundColor3 = Color3.fromRGB(18, 18, 22) }) end)
+                btn.MouseEnter:Connect(function() tween(btn, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { BackgroundColor3 = Color3.fromRGB(18, 14, 22) }) end)
+                btn.MouseLeave:Connect(function() tween(btn, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { BackgroundColor3 = Color3.fromRGB(14, 12, 18) }) end)
                 btn.MouseButton1Click:Connect(function()
                     pulse(btn)
                     if open then closeMenu() else openMenu() end
@@ -682,7 +749,7 @@ function UI:CreateWindow(opts)
                     for _, v in ipairs(values) do
                         local vs = tostring(v)
                         if filter == "" or vs:lower():find(filter, 1, true) then
-                            local opt = mk("TextButton", { Size = UDim2.new(1, 0, 0, 30), BackgroundColor3 = Color3.fromRGB(28, 28, 34), BorderSizePixel = 0, AutoButtonColor = false, Font = Enum.Font.Gotham, Text = vs, TextSize = 12, TextColor3 = Color3.fromRGB(235, 235, 245), Parent = sc, ZIndex = 42 })
+                            local opt = mk("TextButton", { Size = UDim2.new(1, 0, 0, 30), BackgroundColor3 = Color3.fromRGB(20, 16, 28), BorderSizePixel = 0, AutoButtonColor = false, Font = Enum.Font.Gotham, Text = vs, TextSize = 12, TextColor3 = Color3.fromRGB(235, 235, 245), Parent = sc, ZIndex = 42 })
                             corner(opt, 10)
                             opt.MouseEnter:Connect(function() btnState(opt, "hover") end)
                             opt.MouseLeave:Connect(function() btnState(opt, "idle") end)
@@ -730,9 +797,10 @@ function UI:CreateWindow(opts)
                     for _, v in ipairs(defaultSelected) do selectedSet[tostring(v)] = true end
                 end
 
-                local row = mk("Frame", { Size = UDim2.new(1, 0, 0, 38), BackgroundColor3 = Color3.fromRGB(28, 28, 34), BorderSizePixel = 0, Parent = inner })
+                local row = mk("Frame", { Size = UDim2.new(1, 0, 0, 38), BackgroundColor3 = Color3.fromRGB(20, 16, 28), BorderSizePixel = 0, Parent = inner })
                 corner(row, 12)
-                stroke(row, 1, Color3.fromRGB(70, 70, 84), 0.7)
+                stroke(row, 1, Color3.fromRGB(95, 85, 110), 0.75)
+                softGradient(row, Color3.fromRGB(26, 18, 38), Color3.fromRGB(16, 14, 20))
                 mk("TextLabel", { BackgroundTransparency = 1, Position = UDim2.fromOffset(12, 0), Size = UDim2.new(0.45, -12, 1, 0), Font = Enum.Font.GothamSemibold, Text = tostring(text), TextSize = 13, TextColor3 = Color3.fromRGB(235, 235, 245), TextXAlignment = Enum.TextXAlignment.Left, Parent = row })
 
                 local function countSelected()
@@ -745,7 +813,7 @@ function UI:CreateWindow(opts)
                     AnchorPoint = Vector2.new(1, 0.5),
                     Position = UDim2.new(1, -12, 0.5, 0),
                     Size = UDim2.new(0.55, -12, 0, 26),
-                    BackgroundColor3 = Color3.fromRGB(18, 18, 22),
+                    BackgroundColor3 = Color3.fromRGB(14, 12, 18),
                     BorderSizePixel = 0,
                     AutoButtonColor = false,
                     Font = Enum.Font.Gotham,
@@ -760,7 +828,7 @@ function UI:CreateWindow(opts)
                     AnchorPoint = Vector2.new(1, 0),
                     Position = UDim2.new(1, -12, 1, 6),
                     Size = UDim2.new(0.55, -12, 0, 0),
-                    BackgroundColor3 = Color3.fromRGB(14, 14, 16),
+                    BackgroundColor3 = Color3.fromRGB(12, 10, 16),
                     BorderSizePixel = 0,
                     Parent = row,
                     Visible = false,
@@ -768,12 +836,13 @@ function UI:CreateWindow(opts)
                     ZIndex = 40,
                 })
                 corner(menu, 12)
-                stroke(menu, 1, Color3.fromRGB(70, 70, 84), 0.6)
+                stroke(menu, 1, Color3.fromRGB(95, 85, 110), 0.7)
+                softGradient(menu, Color3.fromRGB(18, 12, 28), Color3.fromRGB(10, 10, 12))
 
                 local search = mk("TextBox", {
                     Position = UDim2.fromOffset(10, 10),
                     Size = UDim2.new(1, -20, 0, 26),
-                    BackgroundColor3 = Color3.fromRGB(18, 18, 22),
+                    BackgroundColor3 = Color3.fromRGB(14, 12, 18),
                     BorderSizePixel = 0,
                     ClearTextOnFocus = false,
                     Font = Enum.Font.Gotham,
@@ -854,19 +923,18 @@ function UI:CreateWindow(opts)
                     for _, v in ipairs(values) do
                         local vs = tostring(v)
                         if filter == "" or vs:lower():find(filter, 1, true) then
-                            local optRow = mk("Frame", { Size = UDim2.new(1, 0, 0, 30), BackgroundColor3 = Color3.fromRGB(28, 28, 34), BorderSizePixel = 0, Parent = sc, ZIndex = 42 })
+                            local optRow = mk("Frame", { Size = UDim2.new(1, 0, 0, 30), BackgroundColor3 = Color3.fromRGB(20, 16, 28), BorderSizePixel = 0, Parent = sc, ZIndex = 42 })
                             corner(optRow, 10)
 
-                            local check = mk("Frame", { AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, 8, 0.5, 0), Size = UDim2.fromOffset(14, 14), BackgroundColor3 = selectedSet[vs] and api._accent or Color3.fromRGB(18, 18, 22), BorderSizePixel = 0, Parent = optRow, ZIndex = 43 })
+                            local check = mk("Frame", { AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, 8, 0.5, 0), Size = UDim2.fromOffset(14, 14), BackgroundColor3 = selectedSet[vs] and api._accent or Color3.fromRGB(14, 12, 18), BorderSizePixel = 0, Parent = optRow, ZIndex = 43 })
                             corner(check, 4)
-                            api:_bindAccent(check, "BackgroundColor3")
 
                             mk("TextLabel", { BackgroundTransparency = 1, Position = UDim2.new(0, 28, 0, 0), Size = UDim2.new(1, -36, 1, 0), Font = Enum.Font.Gotham, Text = vs, TextSize = 12, TextColor3 = Color3.fromRGB(235, 235, 245), TextXAlignment = Enum.TextXAlignment.Left, Parent = optRow, ZIndex = 43 })
 
                             local hit = mk("TextButton", { BackgroundTransparency = 1, Size = UDim2.new(1, 0, 1, 0), Text = "", Parent = optRow, ZIndex = 44 })
                             hit.MouseButton1Click:Connect(function()
                                 selectedSet[vs] = not selectedSet[vs]
-                                check.BackgroundColor3 = selectedSet[vs] and api._accent or Color3.fromRGB(18, 18, 22)
+                                check.BackgroundColor3 = selectedSet[vs] and api._accent or Color3.fromRGB(14, 12, 18)
                                 renderButtonText()
                                 if typeof(onChanged) == "function" then task.spawn(onChanged, getSelectedList()) end
                             end)
