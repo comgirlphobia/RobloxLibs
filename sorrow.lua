@@ -24,28 +24,21 @@ local CANVASGROUP_OK = (function()
     return false
 end)()
 
-local function textStroke(parent, color, transparency, thickness)
-    local s = Instance.new("UITextStroke")
-    s.Color = color or Color3.fromRGB(0, 0, 0)
-    s.Transparency = transparency == nil and 0.55 or transparency
-    s.Thickness = thickness or 1
-    s.LineJoinMode = Enum.LineJoinMode.Round
-    s.Parent = parent
-    return s
-end
-
 local function styleText(inst, kind)
     if not inst then return end
     if inst:IsA("TextLabel") or inst:IsA("TextButton") or inst:IsA("TextBox") then
         if kind == "title" then
             inst.TextColor3 = Color3.fromRGB(255, 250, 255)
-            textStroke(inst, Color3.fromRGB(0, 0, 0), 0.40, 1)
+            inst.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+            inst.TextStrokeTransparency = 0.40
         elseif kind == "sub" then
             inst.TextColor3 = Color3.fromRGB(210, 205, 225)
-            textStroke(inst, Color3.fromRGB(0, 0, 0), 0.62, 1)
+            inst.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+            inst.TextStrokeTransparency = 0.62
         else
             inst.TextColor3 = inst.TextColor3 or Color3.fromRGB(235, 235, 245)
-            textStroke(inst, Color3.fromRGB(0, 0, 0), 0.70, 1)
+            inst.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+            inst.TextStrokeTransparency = 0.70
         end
     end
 end
