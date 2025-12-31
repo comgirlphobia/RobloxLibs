@@ -15,6 +15,15 @@ local function accentHighlight(c)
     return c:Lerp(Color3.new(1, 1, 1), 0.35)
 end
 
+local CANVASGROUP_OK = (function()
+    local ok, inst = pcall(function() return Instance.new("CanvasGroup") end)
+    if ok and inst then
+        pcall(function() inst:Destroy() end)
+        return true
+    end
+    return false
+end)()
+
 local function textStroke(parent, color, transparency, thickness)
     local s = Instance.new("UITextStroke")
     s.Color = color or Color3.fromRGB(0, 0, 0)
@@ -416,7 +425,7 @@ function UI:CreateWindow(opts)
         api._current = name
         for tName, t in pairs(api._tabs) do
             local on = (tName == name)
-            if t.group then
+            if CANVASGROUP_OK and t.group then
                 if on then
                     t.frame.Visible = true
                     t.group.GroupTransparency = 1
@@ -495,14 +504,20 @@ function UI:CreateWindow(opts)
         api:_bindAccent(accentBar, "BackgroundColor3")
 
         local frame = mk("Frame", { BackgroundTransparency = 1, Size = UDim2.new(1, 0, 1, 0), Parent = content, Visible = false, Position = UDim2.fromOffset(0, 0) })
-        local cg = mk("CanvasGroup", {
-            BackgroundTransparency = 1,
-            BorderSizePixel = 0,
-            Size = UDim2.new(1, 0, 1, 0),
-            GroupTransparency = 1,
-            Parent = frame,
-        })
-        local scroll = makeScroll(cg)
+        local cg = nil
+        local scroll
+        if CANVASGROUP_OK then
+            cg = mk("CanvasGroup", {
+                BackgroundTransparency = 1,
+                BorderSizePixel = 0,
+                Size = UDim2.new(1, 0, 1, 0),
+                GroupTransparency = 1,
+                Parent = frame,
+            })
+            scroll = makeScroll(cg)
+        else
+            scroll = makeScroll(frame)
+        end
 
         local tabApi = { _scroll = scroll }
 
