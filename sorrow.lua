@@ -43,6 +43,8 @@ local function styleText(inst, kind)
     end
 end
 
+local tween
+
 local function addShine(parent, accent)
     local shine = Instance.new("Frame")
     shine.Name = "Shine"
@@ -118,7 +120,7 @@ local function softGradient(parent, c1, c2)
     return g
 end
 
-local function tween(i, ti, p)
+tween = function(i, ti, p)
     local t = TweenService:Create(i, ti, p)
     t:Play()
     return t
