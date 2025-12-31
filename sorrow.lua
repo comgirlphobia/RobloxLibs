@@ -118,20 +118,6 @@ function UI:CreateWindow(opts)
     corner(window, 16)
     stroke(window, 1, Color3.fromRGB(70, 70, 84), 0.35)
 
-    local shadow = mk("ImageLabel", {
-        Name = "Shadow",
-        AnchorPoint = Vector2.new(0.5, 0.5),
-        Position = UDim2.fromScale(0.5, 0.5),
-        Size = UDim2.new(1, 70, 1, 70),
-        BackgroundTransparency = 1,
-        Image = "rbxassetid://1316045217",
-        ImageColor3 = Color3.fromRGB(0, 0, 0),
-        ImageTransparency = 0.5,
-        ScaleType = Enum.ScaleType.Slice,
-        SliceCenter = Rect.new(10, 10, 118, 118),
-        Parent = window,
-        ZIndex = 0,
-    })
     window.ZIndex = 1
 
     local top = mk("Frame", { Name = "Top", Size = UDim2.new(1, 0, 0, 54), BackgroundTransparency = 1, Parent = window })
@@ -583,6 +569,506 @@ function UI:CreateWindow(opts)
                     SetValues = function(_, newValues)
                         values = newValues or {}
                         rebuildOptions(values)
+                    end,
+                }
+            end
+
+            function sApi:AddSearchDropdown(text, values, defaultIndex, onChanged)
+                values = values or {}
+                local selected = values[defaultIndex or 1]
+
+                local row = mk("Frame", { Size = UDim2.new(1, 0, 0, 38), BackgroundColor3 = Color3.fromRGB(28, 28, 34), BorderSizePixel = 0, Parent = inner })
+                corner(row, 12)
+                stroke(row, 1, Color3.fromRGB(70, 70, 84), 0.7)
+                mk("TextLabel", { BackgroundTransparency = 1, Position = UDim2.fromOffset(12, 0), Size = UDim2.new(0.45, -12, 1, 0), Font = Enum.Font.GothamSemibold, Text = tostring(text), TextSize = 13, TextColor3 = Color3.fromRGB(235, 235, 245), TextXAlignment = Enum.TextXAlignment.Left, Parent = row })
+
+                local btn = mk("TextButton", {
+                    AnchorPoint = Vector2.new(1, 0.5),
+                    Position = UDim2.new(1, -12, 0.5, 0),
+                    Size = UDim2.new(0.55, -12, 0, 26),
+                    BackgroundColor3 = Color3.fromRGB(18, 18, 22),
+                    BorderSizePixel = 0,
+                    AutoButtonColor = false,
+                    Font = Enum.Font.Gotham,
+                    Text = tostring(selected or "-"),
+                    TextSize = 12,
+                    TextColor3 = Color3.fromRGB(235, 235, 245),
+                    Parent = row,
+                })
+                corner(btn, 10)
+
+                local menu = mk("Frame", {
+                    AnchorPoint = Vector2.new(1, 0),
+                    Position = UDim2.new(1, -12, 1, 6),
+                    Size = UDim2.new(0.55, -12, 0, 0),
+                    BackgroundColor3 = Color3.fromRGB(14, 14, 16),
+                    BorderSizePixel = 0,
+                    Parent = row,
+                    Visible = false,
+                    ClipsDescendants = true,
+                    ZIndex = 40,
+                })
+                corner(menu, 12)
+                stroke(menu, 1, Color3.fromRGB(70, 70, 84), 0.6)
+
+                local search = mk("TextBox", {
+                    Position = UDim2.fromOffset(10, 10),
+                    Size = UDim2.new(1, -20, 0, 26),
+                    BackgroundColor3 = Color3.fromRGB(18, 18, 22),
+                    BorderSizePixel = 0,
+                    ClearTextOnFocus = false,
+                    Font = Enum.Font.Gotham,
+                    Text = "",
+                    PlaceholderText = "Search...",
+                    TextSize = 12,
+                    TextColor3 = Color3.fromRGB(235, 235, 245),
+                    PlaceholderColor3 = Color3.fromRGB(120, 120, 140),
+                    TextXAlignment = Enum.TextXAlignment.Left,
+                    Parent = menu,
+                    ZIndex = 41,
+                })
+                corner(search, 10)
+
+                local sc = mk("ScrollingFrame", {
+                    BackgroundTransparency = 1,
+                    BorderSizePixel = 0,
+                    Position = UDim2.fromOffset(0, 44),
+                    Size = UDim2.new(1, 0, 1, -44),
+                    CanvasSize = UDim2.new(0, 0, 0, 0),
+                    ScrollBarThickness = 3,
+                    ScrollBarImageColor3 = Color3.fromRGB(80, 80, 96),
+                    Parent = menu,
+                    ZIndex = 41,
+                })
+                pad(sc, 10)
+                local lay = vlist(sc, 8)
+                lay:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+                    sc.CanvasSize = UDim2.new(0, 0, 0, lay.AbsoluteContentSize.Y + 10)
+                end)
+
+                local open = false
+                local function closeMenu()
+                    if not open then return end
+                    open = false
+                    tween(menu, TweenInfo.new(0.14, Enum.EasingStyle.Quad, Enum.EasingDirection.In), { Size = UDim2.new(0.55, -12, 0, 0) })
+                    task.delay(0.15, function()
+                        if not open and menu and menu.Parent then
+                            menu.Visible = false
+                        end
+                    end)
+                end
+                local function openMenu()
+                    if open then return end
+                    open = true
+                    menu.Visible = true
+                    search.Text = ""
+                    local height = math.min(240, lay.AbsoluteContentSize.Y + 54)
+                    menu.Size = UDim2.new(0.55, -12, 0, 0)
+                    tween(menu, TweenInfo.new(0.16, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { Size = UDim2.new(0.55, -12, 0, height) })
+                end
+
+                btn.MouseEnter:Connect(function() tween(btn, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { BackgroundColor3 = Color3.fromRGB(22, 22, 28) }) end)
+                btn.MouseLeave:Connect(function() tween(btn, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { BackgroundColor3 = Color3.fromRGB(18, 18, 22) }) end)
+                btn.MouseButton1Click:Connect(function()
+                    pulse(btn)
+                    if open then closeMenu() else openMenu() end
+                end)
+
+                local function rebuildOptions(filter)
+                    filter = tostring(filter or ""):lower()
+                    for _, ch in ipairs(sc:GetChildren()) do
+                        if ch:IsA("TextButton") then ch:Destroy() end
+                    end
+                    for _, v in ipairs(values) do
+                        local vs = tostring(v)
+                        if filter == "" or vs:lower():find(filter, 1, true) then
+                            local opt = mk("TextButton", { Size = UDim2.new(1, 0, 0, 30), BackgroundColor3 = Color3.fromRGB(28, 28, 34), BorderSizePixel = 0, AutoButtonColor = false, Font = Enum.Font.Gotham, Text = vs, TextSize = 12, TextColor3 = Color3.fromRGB(235, 235, 245), Parent = sc, ZIndex = 42 })
+                            corner(opt, 10)
+                            opt.MouseEnter:Connect(function() btnState(opt, "hover") end)
+                            opt.MouseLeave:Connect(function() btnState(opt, "idle") end)
+                            opt.MouseButton1Click:Connect(function()
+                                selected = v
+                                btn.Text = tostring(v)
+                                closeMenu()
+                                if typeof(onChanged) == "function" then task.spawn(onChanged, v) end
+                            end)
+                        end
+                    end
+                end
+                rebuildOptions("")
+
+                search:GetPropertyChangedSignal("Text"):Connect(function()
+                    rebuildOptions(search.Text)
+                end)
+
+                UserInputService.InputBegan:Connect(function(input, gp)
+                    if gp then return end
+                    if open and input.UserInputType == Enum.UserInputType.MouseButton1 then
+                        local pos = UserInputService:GetMouseLocation()
+                        local abs = menu.AbsolutePosition
+                        local size = menu.AbsoluteSize
+                        if not (pos.X >= abs.X and pos.X <= abs.X + size.X and pos.Y >= abs.Y and pos.Y <= abs.Y + size.Y) then
+                            closeMenu()
+                        end
+                    end
+                end)
+
+                return {
+                    GetValue = function() return selected end,
+                    SetValue = function(_, v) selected = v; btn.Text = tostring(v) end,
+                    SetValues = function(_, newValues)
+                        values = newValues or {}
+                        rebuildOptions(search.Text)
+                    end,
+                }
+            end
+
+            function sApi:AddMultiSelect(text, values, defaultSelected, onChanged)
+                values = values or {}
+                local selectedSet = {}
+                if type(defaultSelected) == "table" then
+                    for _, v in ipairs(defaultSelected) do selectedSet[tostring(v)] = true end
+                end
+
+                local row = mk("Frame", { Size = UDim2.new(1, 0, 0, 38), BackgroundColor3 = Color3.fromRGB(28, 28, 34), BorderSizePixel = 0, Parent = inner })
+                corner(row, 12)
+                stroke(row, 1, Color3.fromRGB(70, 70, 84), 0.7)
+                mk("TextLabel", { BackgroundTransparency = 1, Position = UDim2.fromOffset(12, 0), Size = UDim2.new(0.45, -12, 1, 0), Font = Enum.Font.GothamSemibold, Text = tostring(text), TextSize = 13, TextColor3 = Color3.fromRGB(235, 235, 245), TextXAlignment = Enum.TextXAlignment.Left, Parent = row })
+
+                local function countSelected()
+                    local n = 0
+                    for _, v in ipairs(values) do if selectedSet[tostring(v)] then n += 1 end end
+                    return n
+                end
+
+                local btn = mk("TextButton", {
+                    AnchorPoint = Vector2.new(1, 0.5),
+                    Position = UDim2.new(1, -12, 0.5, 0),
+                    Size = UDim2.new(0.55, -12, 0, 26),
+                    BackgroundColor3 = Color3.fromRGB(18, 18, 22),
+                    BorderSizePixel = 0,
+                    AutoButtonColor = false,
+                    Font = Enum.Font.Gotham,
+                    Text = tostring(countSelected()) .. " selected",
+                    TextSize = 12,
+                    TextColor3 = Color3.fromRGB(235, 235, 245),
+                    Parent = row,
+                })
+                corner(btn, 10)
+
+                local menu = mk("Frame", {
+                    AnchorPoint = Vector2.new(1, 0),
+                    Position = UDim2.new(1, -12, 1, 6),
+                    Size = UDim2.new(0.55, -12, 0, 0),
+                    BackgroundColor3 = Color3.fromRGB(14, 14, 16),
+                    BorderSizePixel = 0,
+                    Parent = row,
+                    Visible = false,
+                    ClipsDescendants = true,
+                    ZIndex = 40,
+                })
+                corner(menu, 12)
+                stroke(menu, 1, Color3.fromRGB(70, 70, 84), 0.6)
+
+                local search = mk("TextBox", {
+                    Position = UDim2.fromOffset(10, 10),
+                    Size = UDim2.new(1, -20, 0, 26),
+                    BackgroundColor3 = Color3.fromRGB(18, 18, 22),
+                    BorderSizePixel = 0,
+                    ClearTextOnFocus = false,
+                    Font = Enum.Font.Gotham,
+                    Text = "",
+                    PlaceholderText = "Search...",
+                    TextSize = 12,
+                    TextColor3 = Color3.fromRGB(235, 235, 245),
+                    PlaceholderColor3 = Color3.fromRGB(120, 120, 140),
+                    TextXAlignment = Enum.TextXAlignment.Left,
+                    Parent = menu,
+                    ZIndex = 41,
+                })
+                corner(search, 10)
+
+                local sc = mk("ScrollingFrame", {
+                    BackgroundTransparency = 1,
+                    BorderSizePixel = 0,
+                    Position = UDim2.fromOffset(0, 44),
+                    Size = UDim2.new(1, 0, 1, -44),
+                    CanvasSize = UDim2.new(0, 0, 0, 0),
+                    ScrollBarThickness = 3,
+                    ScrollBarImageColor3 = Color3.fromRGB(80, 80, 96),
+                    Parent = menu,
+                    ZIndex = 41,
+                })
+                pad(sc, 10)
+                local lay = vlist(sc, 8)
+                lay:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+                    sc.CanvasSize = UDim2.new(0, 0, 0, lay.AbsoluteContentSize.Y + 10)
+                end)
+
+                local open = false
+                local function closeMenu()
+                    if not open then return end
+                    open = false
+                    tween(menu, TweenInfo.new(0.14, Enum.EasingStyle.Quad, Enum.EasingDirection.In), { Size = UDim2.new(0.55, -12, 0, 0) })
+                    task.delay(0.15, function()
+                        if not open and menu and menu.Parent then menu.Visible = false end
+                    end)
+                end
+                local function openMenu()
+                    if open then return end
+                    open = true
+                    menu.Visible = true
+                    search.Text = ""
+                    local height = math.min(240, lay.AbsoluteContentSize.Y + 54)
+                    menu.Size = UDim2.new(0.55, -12, 0, 0)
+                    tween(menu, TweenInfo.new(0.16, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { Size = UDim2.new(0.55, -12, 0, height) })
+                end
+
+                btn.MouseEnter:Connect(function() tween(btn, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { BackgroundColor3 = Color3.fromRGB(22, 22, 28) }) end)
+                btn.MouseLeave:Connect(function() tween(btn, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { BackgroundColor3 = Color3.fromRGB(18, 18, 22) }) end)
+                btn.MouseButton1Click:Connect(function()
+                    pulse(btn)
+                    if open then closeMenu() else openMenu() end
+                end)
+
+                local function getSelectedList()
+                    local out = {}
+                    for _, v in ipairs(values) do
+                        if selectedSet[tostring(v)] then
+                            table.insert(out, v)
+                        end
+                    end
+                    return out
+                end
+
+                local function renderButtonText()
+                    btn.Text = tostring(countSelected()) .. " selected"
+                end
+
+                local function rebuildOptions(filter)
+                    filter = tostring(filter or ""):lower()
+                    for _, ch in ipairs(sc:GetChildren()) do
+                        if ch:IsA("Frame") or ch:IsA("TextButton") then ch:Destroy() end
+                    end
+
+                    for _, v in ipairs(values) do
+                        local vs = tostring(v)
+                        if filter == "" or vs:lower():find(filter, 1, true) then
+                            local optRow = mk("Frame", { Size = UDim2.new(1, 0, 0, 30), BackgroundColor3 = Color3.fromRGB(28, 28, 34), BorderSizePixel = 0, Parent = sc, ZIndex = 42 })
+                            corner(optRow, 10)
+
+                            local check = mk("Frame", { AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, 8, 0.5, 0), Size = UDim2.fromOffset(14, 14), BackgroundColor3 = selectedSet[vs] and api._accent or Color3.fromRGB(18, 18, 22), BorderSizePixel = 0, Parent = optRow, ZIndex = 43 })
+                            corner(check, 4)
+                            api:_bindAccent(check, "BackgroundColor3")
+
+                            mk("TextLabel", { BackgroundTransparency = 1, Position = UDim2.new(0, 28, 0, 0), Size = UDim2.new(1, -36, 1, 0), Font = Enum.Font.Gotham, Text = vs, TextSize = 12, TextColor3 = Color3.fromRGB(235, 235, 245), TextXAlignment = Enum.TextXAlignment.Left, Parent = optRow, ZIndex = 43 })
+
+                            local hit = mk("TextButton", { BackgroundTransparency = 1, Size = UDim2.new(1, 0, 1, 0), Text = "", Parent = optRow, ZIndex = 44 })
+                            hit.MouseButton1Click:Connect(function()
+                                selectedSet[vs] = not selectedSet[vs]
+                                check.BackgroundColor3 = selectedSet[vs] and api._accent or Color3.fromRGB(18, 18, 22)
+                                renderButtonText()
+                                if typeof(onChanged) == "function" then task.spawn(onChanged, getSelectedList()) end
+                            end)
+                        end
+                    end
+                end
+
+                rebuildOptions("")
+                renderButtonText()
+
+                search:GetPropertyChangedSignal("Text"):Connect(function()
+                    rebuildOptions(search.Text)
+                end)
+
+                UserInputService.InputBegan:Connect(function(input, gp)
+                    if gp then return end
+                    if open and input.UserInputType == Enum.UserInputType.MouseButton1 then
+                        local pos = UserInputService:GetMouseLocation()
+                        local abs = menu.AbsolutePosition
+                        local size = menu.AbsoluteSize
+                        if not (pos.X >= abs.X and pos.X <= abs.X + size.X and pos.Y >= abs.Y and pos.Y <= abs.Y + size.Y) then
+                            closeMenu()
+                        end
+                    end
+                end)
+
+                return {
+                    GetValue = function() return getSelectedList() end,
+                    SetValue = function(_, list)
+                        selectedSet = {}
+                        if type(list) == "table" then
+                            for _, v in ipairs(list) do selectedSet[tostring(v)] = true end
+                        end
+                        rebuildOptions(search.Text)
+                        renderButtonText()
+                    end,
+                    SetValues = function(_, newValues)
+                        values = newValues or {}
+                        rebuildOptions(search.Text)
+                        renderButtonText()
+                    end,
+                }
+            end
+
+            function sApi:AddColorPicker(text, defaultColor, onChanged)
+                local color = defaultColor
+                if typeof(color) ~= "Color3" then
+                    color = Color3.fromRGB(235, 203, 170)
+                end
+
+                local row = mk("Frame", { Size = UDim2.new(1, 0, 0, 38), BackgroundColor3 = Color3.fromRGB(28, 28, 34), BorderSizePixel = 0, Parent = inner })
+                corner(row, 12)
+                stroke(row, 1, Color3.fromRGB(70, 70, 84), 0.7)
+                mk("TextLabel", { BackgroundTransparency = 1, Position = UDim2.fromOffset(12, 0), Size = UDim2.new(0.55, -12, 1, 0), Font = Enum.Font.GothamSemibold, Text = tostring(text), TextSize = 13, TextColor3 = Color3.fromRGB(235, 235, 245), TextXAlignment = Enum.TextXAlignment.Left, Parent = row })
+
+                local preview = mk("TextButton", {
+                    AnchorPoint = Vector2.new(1, 0.5),
+                    Position = UDim2.new(1, -12, 0.5, 0),
+                    Size = UDim2.new(0.45, -12, 0, 26),
+                    BackgroundColor3 = color,
+                    BorderSizePixel = 0,
+                    AutoButtonColor = false,
+                    Text = "",
+                    Parent = row,
+                })
+                corner(preview, 10)
+                stroke(preview, 1, Color3.fromRGB(0, 0, 0), 0.65)
+
+                local menu = mk("Frame", {
+                    AnchorPoint = Vector2.new(1, 0),
+                    Position = UDim2.new(1, -12, 1, 6),
+                    Size = UDim2.new(0.45, -12, 0, 0),
+                    BackgroundColor3 = Color3.fromRGB(14, 14, 16),
+                    BorderSizePixel = 0,
+                    Parent = row,
+                    Visible = false,
+                    ClipsDescendants = true,
+                    ZIndex = 50,
+                })
+                corner(menu, 12)
+                stroke(menu, 1, Color3.fromRGB(70, 70, 84), 0.6)
+
+                local holder = mk("Frame", { BackgroundTransparency = 1, Position = UDim2.fromOffset(10, 10), Size = UDim2.new(1, -20, 1, -20), Parent = menu, ZIndex = 51 })
+                local lay = vlist(holder, 10)
+
+                local function miniSlider(label, min, max, value0, cb)
+                    local wrap = mk("Frame", { Size = UDim2.new(1, 0, 0, 46), BackgroundColor3 = Color3.fromRGB(28, 28, 34), BorderSizePixel = 0, Parent = holder, ZIndex = 52 })
+                    corner(wrap, 10)
+                    stroke(wrap, 1, Color3.fromRGB(70, 70, 84), 0.7)
+
+                    mk("TextLabel", { BackgroundTransparency = 1, Position = UDim2.fromOffset(10, 6), Size = UDim2.new(1, -20, 0, 16), Font = Enum.Font.GothamSemibold, Text = tostring(label), TextSize = 12, TextColor3 = Color3.fromRGB(235, 235, 245), TextXAlignment = Enum.TextXAlignment.Left, Parent = wrap, ZIndex = 53 })
+                    local valLbl = mk("TextLabel", { BackgroundTransparency = 1, Position = UDim2.fromOffset(10, 6), Size = UDim2.new(1, -20, 0, 16), Font = Enum.Font.Gotham, Text = tostring(value0), TextSize = 12, TextColor3 = Color3.fromRGB(170, 170, 190), TextXAlignment = Enum.TextXAlignment.Right, Parent = wrap, ZIndex = 53 })
+
+                    local bar = mk("Frame", { Position = UDim2.fromOffset(10, 28), Size = UDim2.new(1, -20, 0, 10), BackgroundColor3 = Color3.fromRGB(18, 18, 22), BorderSizePixel = 0, Parent = wrap, ZIndex = 53 })
+                    corner(bar, 8)
+                    local fill = mk("Frame", { Size = UDim2.new((value0 - min) / (max - min), 0, 1, 0), BackgroundColor3 = api._accent, BorderSizePixel = 0, Parent = bar, ZIndex = 54 })
+                    corner(fill, 8)
+                    api:_bindAccent(fill, "BackgroundColor3")
+
+                    local hit = mk("TextButton", { BackgroundTransparency = 1, Size = UDim2.new(1, 0, 1, 0), Text = "", Parent = bar, ZIndex = 55 })
+                    local dragging = false
+                    local value = value0
+
+                    local function set(v)
+                        v = tonumber(v)
+                        if v == nil then return end
+                        if v < min then v = min end
+                        if v > max then v = max end
+                        value = v
+                        valLbl.Text = tostring(math.floor(v + 0.5))
+                        fill.Size = UDim2.new((value - min) / (max - min), 0, 1, 0)
+                        cb(value)
+                    end
+
+                    local function setFromX(x)
+                        local abs = bar.AbsolutePosition
+                        local sz = bar.AbsoluteSize
+                        local pct = (x - abs.X) / math.max(1, sz.X)
+                        if pct < 0 then pct = 0 end
+                        if pct > 1 then pct = 1 end
+                        set(min + (max - min) * pct)
+                    end
+
+                    hit.MouseButton1Down:Connect(function()
+                        dragging = true
+                        setFromX(UserInputService:GetMouseLocation().X)
+                    end)
+                    UserInputService.InputEnded:Connect(function(inp)
+                        if inp.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
+                    end)
+                    UserInputService.InputChanged:Connect(function(inp)
+                        if dragging and inp.UserInputType == Enum.UserInputType.MouseMovement then
+                            setFromX(UserInputService:GetMouseLocation().X)
+                        end
+                    end)
+
+                    return function() return value end
+                end
+
+                local r = math.floor(color.R * 255 + 0.5)
+                local g = math.floor(color.G * 255 + 0.5)
+                local b = math.floor(color.B * 255 + 0.5)
+
+                local function apply()
+                    color = Color3.fromRGB(r, g, b)
+                    preview.BackgroundColor3 = color
+                    if typeof(onChanged) == "function" then task.spawn(onChanged, color) end
+                end
+
+                miniSlider("Red", 0, 255, r, function(v) r = math.floor(v + 0.5); apply() end)
+                miniSlider("Green", 0, 255, g, function(v) g = math.floor(v + 0.5); apply() end)
+                miniSlider("Blue", 0, 255, b, function(v) b = math.floor(v + 0.5); apply() end)
+
+                lay:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+                    menu.Size = UDim2.new(menu.Size.X.Scale, menu.Size.X.Offset, 0, lay.AbsoluteContentSize.Y + 20)
+                end)
+
+                local open = false
+                local function closeMenu()
+                    if not open then return end
+                    open = false
+                    tween(menu, TweenInfo.new(0.14, Enum.EasingStyle.Quad, Enum.EasingDirection.In), { Size = UDim2.new(menu.Size.X.Scale, menu.Size.X.Offset, 0, 0) })
+                    task.delay(0.15, function()
+                        if not open and menu and menu.Parent then menu.Visible = false end
+                    end)
+                end
+                local function openMenu()
+                    if open then return end
+                    open = true
+                    menu.Visible = true
+                    local targetH = lay.AbsoluteContentSize.Y + 20
+                    menu.Size = UDim2.new(menu.Size.X.Scale, menu.Size.X.Offset, 0, 0)
+                    tween(menu, TweenInfo.new(0.16, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { Size = UDim2.new(menu.Size.X.Scale, menu.Size.X.Offset, 0, targetH) })
+                end
+
+                preview.MouseButton1Click:Connect(function()
+                    pulse(preview)
+                    if open then closeMenu() else openMenu() end
+                end)
+
+                UserInputService.InputBegan:Connect(function(input, gp)
+                    if gp then return end
+                    if open and input.UserInputType == Enum.UserInputType.MouseButton1 then
+                        local pos = UserInputService:GetMouseLocation()
+                        local abs = menu.AbsolutePosition
+                        local size = menu.AbsoluteSize
+                        if not (pos.X >= abs.X and pos.X <= abs.X + size.X and pos.Y >= abs.Y and pos.Y <= abs.Y + size.Y) then
+                            closeMenu()
+                        end
+                    end
+                end)
+
+                return {
+                    GetValue = function() return color end,
+                    SetValue = function(_, c)
+                        if typeof(c) == "Color3" then
+                            color = c
+                            r = math.floor(c.R * 255 + 0.5)
+                            g = math.floor(c.G * 255 + 0.5)
+                            b = math.floor(c.B * 255 + 0.5)
+                            apply()
+                        end
                     end,
                 }
             end
