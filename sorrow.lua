@@ -6,6 +6,85 @@ local UI = {}
 
 local DEFAULT_ACCENT = Color3.fromRGB(247, 215, 248)
 
+local TI_SHOW = TweenInfo.new(0.22, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+local TI_HIDE = TweenInfo.new(0.20, Enum.EasingStyle.Quint, Enum.EasingDirection.In)
+local TI_HOVER = TweenInfo.new(0.16, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+local TI_PRESS = TweenInfo.new(0.10, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+
+local function accentHighlight(c)
+    return c:Lerp(Color3.new(1, 1, 1), 0.35)
+end
+
+local function textStroke(parent, color, transparency, thickness)
+    local s = Instance.new("UITextStroke")
+    s.Color = color or Color3.fromRGB(0, 0, 0)
+    s.Transparency = transparency == nil and 0.55 or transparency
+    s.Thickness = thickness or 1
+    s.LineJoinMode = Enum.LineJoinMode.Round
+    s.Parent = parent
+    return s
+end
+
+local function styleText(inst, kind)
+    if not inst then return end
+    if inst:IsA("TextLabel") or inst:IsA("TextButton") or inst:IsA("TextBox") then
+        if kind == "title" then
+            inst.TextColor3 = Color3.fromRGB(255, 250, 255)
+            textStroke(inst, Color3.fromRGB(0, 0, 0), 0.40, 1)
+        elseif kind == "sub" then
+            inst.TextColor3 = Color3.fromRGB(210, 205, 225)
+            textStroke(inst, Color3.fromRGB(0, 0, 0), 0.62, 1)
+        else
+            inst.TextColor3 = inst.TextColor3 or Color3.fromRGB(235, 235, 245)
+            textStroke(inst, Color3.fromRGB(0, 0, 0), 0.70, 1)
+        end
+    end
+end
+
+local function addShine(parent, accent)
+    local shine = Instance.new("Frame")
+    shine.Name = "Shine"
+    shine.BackgroundTransparency = 1
+    shine.BorderSizePixel = 0
+    shine.Size = UDim2.new(1, 0, 1, 0)
+    shine.ZIndex = (parent.ZIndex or 1) + 1
+    shine.ClipsDescendants = true
+    shine.Parent = parent
+
+    local bar = Instance.new("Frame")
+    bar.Name = "Bar"
+    bar.BackgroundTransparency = 1
+    bar.BorderSizePixel = 0
+    bar.AnchorPoint = Vector2.new(0.5, 0.5)
+    bar.Position = UDim2.fromScale(0.5, 0.5)
+    bar.Size = UDim2.new(1.4, 0, 1.4, 0)
+    bar.ZIndex = shine.ZIndex
+    bar.Parent = shine
+
+    local g = Instance.new("UIGradient")
+    g.Rotation = 25
+    g.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.new(1, 1, 1)),
+        ColorSequenceKeypoint.new(0.45, accentHighlight(accent)),
+        ColorSequenceKeypoint.new(1, Color3.new(1, 1, 1)),
+    })
+    g.Transparency = NumberSequence.new({
+        NumberSequenceKeypoint.new(0, 1),
+        NumberSequenceKeypoint.new(0.46, 0.88),
+        NumberSequenceKeypoint.new(0.54, 0.88),
+        NumberSequenceKeypoint.new(1, 1),
+    })
+    g.Offset = Vector2.new(-1, 0)
+    g.Parent = bar
+
+    local function sweep()
+        g.Offset = Vector2.new(-1, 0)
+        tween(g, TweenInfo.new(0.55, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), { Offset = Vector2.new(1, 0) })
+    end
+
+    return shine, g, sweep
+end
+
 local function glowStroke(parent, color, thickness, transparency)
     local s = Instance.new("UIStroke")
     s.Thickness = thickness
@@ -18,7 +97,7 @@ local function glowStroke(parent, color, thickness, transparency)
     g.Rotation = 90
     g.Color = ColorSequence.new({
         ColorSequenceKeypoint.new(0, color),
-        ColorSequenceKeypoint.new(1, Color3.fromRGB(190, 160, 255)),
+        ColorSequenceKeypoint.new(1, accentHighlight(color)),
     })
     g.Transparency = NumberSequence.new({
         NumberSequenceKeypoint.new(0, transparency),
@@ -83,21 +162,21 @@ end
 
 local function pulse(btn)
     local s = btn.Size
-    tween(btn, TweenInfo.new(0.08, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { Size = s + UDim2.fromOffset(6, 4) })
+    tween(btn, TI_PRESS, { Size = s + UDim2.fromOffset(6, 4) })
     task.delay(0.09, function()
         if btn and btn.Parent then
-            tween(btn, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { Size = s })
+            tween(btn, TI_HOVER, { Size = s })
         end
     end)
 end
 
 local function btnState(btn, state)
     if state == "idle" then
-        tween(btn, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { BackgroundColor3 = Color3.fromRGB(20, 16, 28) })
+        tween(btn, TI_HOVER, { BackgroundColor3 = Color3.fromRGB(20, 16, 28) })
     elseif state == "hover" then
-        tween(btn, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { BackgroundColor3 = Color3.fromRGB(28, 22, 38) })
+        tween(btn, TI_HOVER, { BackgroundColor3 = Color3.fromRGB(28, 22, 38) })
     elseif state == "press" then
-        tween(btn, TweenInfo.new(0.08, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { BackgroundColor3 = Color3.fromRGB(36, 28, 48) })
+        tween(btn, TI_PRESS, { BackgroundColor3 = Color3.fromRGB(36, 28, 48) })
     end
 end
 
@@ -166,6 +245,7 @@ function UI:CreateWindow(opts)
         TextXAlignment = Enum.TextXAlignment.Left,
         Parent = top,
     })
+    styleText(title, "title")
     local sub = mk("TextLabel", {
         BackgroundTransparency = 1,
         Position = UDim2.fromOffset(18, 31),
@@ -232,12 +312,12 @@ function UI:CreateWindow(opts)
         window.Visible = true
         window.BackgroundTransparency = 1
         window.Position = UDim2.fromScale(0.5, 0.53)
-        tween(window, TweenInfo.new(0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { BackgroundTransparency = 0, Position = UDim2.fromScale(0.5, 0.5) })
+        tween(window, TI_SHOW, { BackgroundTransparency = 0, Position = UDim2.fromScale(0.5, 0.5) })
     end
     local function hide()
         if not visible then return end
         visible = false
-        tween(window, TweenInfo.new(0.16, Enum.EasingStyle.Quad, Enum.EasingDirection.In), { BackgroundTransparency = 1, Position = UDim2.fromScale(0.5, 0.53) })
+        tween(window, TI_HIDE, { BackgroundTransparency = 1, Position = UDim2.fromScale(0.5, 0.53) })
         task.delay(0.17, function()
             if not visible and gui and gui.Parent then
                 window.Visible = false
@@ -257,22 +337,43 @@ function UI:CreateWindow(opts)
 
     function api:_bindAccent(inst, prop)
         table.insert(self._accentTargets, { inst = inst, prop = prop })
-        pcall(function() inst[prop] = self._accent end)
+        if typeof(inst) == "function" then
+            pcall(function() inst(self._accent) end)
+        else
+            pcall(function() inst[prop] = self._accent end)
+        end
     end
 
     function api:SetAccent(color)
         if typeof(color) ~= "Color3" then return end
         self._accent = color
         for _, t in ipairs(self._accentTargets) do
-            if t.inst and t.inst.Parent then
+            if typeof(t.inst) == "function" then
+                pcall(function() t.inst(color) end)
+            elseif t.inst and t.inst.Parent then
                 pcall(function() t.inst[t.prop] = color end)
             end
         end
     end
 
     do
-        local gs = glowStroke(window, accent, 2, 0.68)
+        local gs = glowStroke(window, accent, 2, 0.60)
         api:_bindAccent(gs, "Color")
+
+        local shine, _, sweep = addShine(window, accent)
+        shine.ZIndex = window.ZIndex + 2
+        api:_bindAccent(function(c)
+            local bar = shine:FindFirstChild("Bar")
+            if not bar then return end
+            local grad = bar:FindFirstChildOfClass("UIGradient")
+            if not grad then return end
+            grad.Color = ColorSequence.new({
+                ColorSequenceKeypoint.new(0, Color3.new(1, 1, 1)),
+                ColorSequenceKeypoint.new(0.45, accentHighlight(c)),
+                ColorSequenceKeypoint.new(1, Color3.new(1, 1, 1)),
+            })
+        end, "__func")
+        task.delay(0.2, sweep)
     end
 
     function api:Notify(text, duration)
@@ -284,7 +385,7 @@ function UI:CreateWindow(opts)
         local bar = mk("Frame", { Size = UDim2.new(0, 4, 1, 0), BackgroundColor3 = accent, BorderSizePixel = 0, Parent = card, ZIndex = 102 })
         corner(bar, 14)
         api:_bindAccent(bar, "BackgroundColor3")
-        mk("TextLabel", {
+        local txt = mk("TextLabel", {
             BackgroundTransparency = 1,
             Position = UDim2.fromOffset(14, 10),
             Size = UDim2.new(1, -24, 1, -20),
@@ -298,6 +399,7 @@ function UI:CreateWindow(opts)
             Parent = card,
             ZIndex = 102,
         })
+        styleText(txt)
         card.BackgroundTransparency = 1
         card.Size = UDim2.fromOffset(320, 0)
         tween(card, TweenInfo.new(0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { BackgroundTransparency = 0, Size = UDim2.fromOffset(320, 62) })
@@ -310,10 +412,32 @@ function UI:CreateWindow(opts)
 
     function api:SelectTab(name)
         if api._current == name then return end
+        local prevName = api._current
         api._current = name
         for tName, t in pairs(api._tabs) do
             local on = (tName == name)
-            t.frame.Visible = on
+            if t.group then
+                if on then
+                    t.frame.Visible = true
+                    t.group.GroupTransparency = 1
+                    t.frame.Position = UDim2.fromOffset(10, 0)
+                    tween(t.group, TweenInfo.new(0.22, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), { GroupTransparency = 0 })
+                    tween(t.frame, TweenInfo.new(0.22, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), { Position = UDim2.fromOffset(0, 0) })
+                elseif prevName == tName then
+                    tween(t.group, TweenInfo.new(0.18, Enum.EasingStyle.Quint, Enum.EasingDirection.In), { GroupTransparency = 1 })
+                    tween(t.frame, TweenInfo.new(0.18, Enum.EasingStyle.Quint, Enum.EasingDirection.In), { Position = UDim2.fromOffset(-8, 0) })
+                    task.delay(0.19, function()
+                        if api._current ~= tName and t.frame and t.frame.Parent then
+                            t.frame.Visible = false
+                        end
+                    end)
+                else
+                    t.group.GroupTransparency = 1
+                    t.frame.Visible = false
+                end
+            else
+                t.frame.Visible = on
+            end
             if on then
                 tween(t.accent, TweenInfo.new(0.14, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { Size = UDim2.new(0, 4, 0, 14) })
                 tween(t.button, TweenInfo.new(0.14, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { BackgroundColor3 = Color3.fromRGB(28, 22, 38) })
@@ -355,6 +479,7 @@ function UI:CreateWindow(opts)
             TextColor3 = Color3.fromRGB(220, 220, 235),
             Parent = tabList,
         })
+        styleText(btn)
         corner(btn, 12)
         stroke(btn, 1, Color3.fromRGB(70, 70, 84), 0.7)
 
@@ -369,8 +494,15 @@ function UI:CreateWindow(opts)
         corner(accentBar, 10)
         api:_bindAccent(accentBar, "BackgroundColor3")
 
-        local frame = mk("Frame", { BackgroundTransparency = 1, Size = UDim2.new(1, 0, 1, 0), Parent = content, Visible = false })
-        local scroll = makeScroll(frame)
+        local frame = mk("Frame", { BackgroundTransparency = 1, Size = UDim2.new(1, 0, 1, 0), Parent = content, Visible = false, Position = UDim2.fromOffset(0, 0) })
+        local cg = mk("CanvasGroup", {
+            BackgroundTransparency = 1,
+            BorderSizePixel = 0,
+            Size = UDim2.new(1, 0, 1, 0),
+            GroupTransparency = 1,
+            Parent = frame,
+        })
+        local scroll = makeScroll(cg)
 
         local tabApi = { _scroll = scroll }
 
@@ -395,6 +527,7 @@ function UI:CreateWindow(opts)
                 TextXAlignment = Enum.TextXAlignment.Left,
                 Parent = box,
             })
+            styleText(box:FindFirstChildOfClass("TextLabel"), "title")
 
             local inner = mk("Frame", { BackgroundTransparency = 1, Position = UDim2.fromOffset(14, 36), Size = UDim2.new(1, -28, 1, -46), Parent = box })
             local lay = vlist(inner, 10)
@@ -405,12 +538,14 @@ function UI:CreateWindow(opts)
             local sApi = { _inner = inner }
 
             function sApi:AddLabel(text)
-                local lbl = mk("TextLabel", { BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 18), Font = Enum.Font.Gotham, Text = tostring(text), TextSize = 12, TextColor3 = Color3.fromRGB(175, 175, 195), TextXAlignment = Enum.TextXAlignment.Left, Parent = inner })
+                local lbl = mk("TextLabel", { BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 18), Font = Enum.Font.Gotham, Text = tostring(text), TextSize = 12, TextColor3 = Color3.fromRGB(210, 205, 225), TextXAlignment = Enum.TextXAlignment.Left, Parent = inner })
+                styleText(lbl, "sub")
                 return { SetText = function(_, t) lbl.Text = tostring(t) end }
             end
 
             function sApi:AddButton(text, cb)
                 local b = mk("TextButton", { Size = UDim2.new(1, 0, 0, 38), BackgroundColor3 = Color3.fromRGB(20, 16, 28), BorderSizePixel = 0, AutoButtonColor = false, Font = Enum.Font.GothamSemibold, Text = tostring(text), TextSize = 13, TextColor3 = Color3.fromRGB(245, 235, 250), Parent = inner })
+                styleText(b)
                 corner(b, 12)
                 stroke(b, 1, Color3.fromRGB(95, 85, 110), 0.75)
                 softGradient(b, Color3.fromRGB(26, 18, 38), Color3.fromRGB(16, 14, 20))
@@ -419,7 +554,21 @@ function UI:CreateWindow(opts)
                     api:_bindAccent(gs, "Color")
                 end
 
-                b.MouseEnter:Connect(function() btnState(b, "hover") end)
+                local shine, _, sweep = addShine(b, api._accent)
+                shine.ZIndex = b.ZIndex + 2
+                api:_bindAccent(function(c)
+                    local bar = shine:FindFirstChild("Bar")
+                    if not bar then return end
+                    local grad = bar:FindFirstChildOfClass("UIGradient")
+                    if not grad then return end
+                    grad.Color = ColorSequence.new({
+                        ColorSequenceKeypoint.new(0, Color3.new(1, 1, 1)),
+                        ColorSequenceKeypoint.new(0.45, accentHighlight(c)),
+                        ColorSequenceKeypoint.new(1, Color3.new(1, 1, 1)),
+                    })
+                end, "__func")
+
+                b.MouseEnter:Connect(function() btnState(b, "hover") sweep() end)
                 b.MouseLeave:Connect(function() btnState(b, "idle") end)
                 b.MouseButton1Down:Connect(function() btnState(b, "press") end)
                 b.MouseButton1Up:Connect(function() btnState(b, "hover") end)
@@ -444,7 +593,8 @@ function UI:CreateWindow(opts)
                 stroke(row, 1, Color3.fromRGB(95, 85, 110), 0.75)
                 softGradient(row, Color3.fromRGB(26, 18, 38), Color3.fromRGB(16, 14, 20))
 
-                mk("TextLabel", { BackgroundTransparency = 1, Position = UDim2.fromOffset(12, 0), Size = UDim2.new(1, -70, 1, 0), Font = Enum.Font.GothamSemibold, Text = tostring(text), TextSize = 13, TextColor3 = Color3.fromRGB(235, 235, 245), TextXAlignment = Enum.TextXAlignment.Left, Parent = row })
+                local tLbl = mk("TextLabel", { BackgroundTransparency = 1, Position = UDim2.fromOffset(12, 0), Size = UDim2.new(1, -70, 1, 0), Font = Enum.Font.GothamSemibold, Text = tostring(text), TextSize = 13, TextColor3 = Color3.fromRGB(245, 235, 250), TextXAlignment = Enum.TextXAlignment.Left, Parent = row })
+                styleText(tLbl)
 
                 local knob = mk("Frame", { AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -12, 0.5, 0), Size = UDim2.fromOffset(44, 22), BackgroundColor3 = Color3.fromRGB(14, 12, 18), BorderSizePixel = 0, Parent = row })
                 corner(knob, 11)
@@ -484,7 +634,8 @@ function UI:CreateWindow(opts)
                 corner(row, 12)
                 stroke(row, 1, Color3.fromRGB(95, 85, 110), 0.75)
                 softGradient(row, Color3.fromRGB(26, 18, 38), Color3.fromRGB(16, 14, 20))
-                mk("TextLabel", { BackgroundTransparency = 1, Position = UDim2.fromOffset(12, 0), Size = UDim2.new(0.45, -12, 1, 0), Font = Enum.Font.GothamSemibold, Text = tostring(text), TextSize = 13, TextColor3 = Color3.fromRGB(235, 235, 245), TextXAlignment = Enum.TextXAlignment.Left, Parent = row })
+                local iLbl = mk("TextLabel", { BackgroundTransparency = 1, Position = UDim2.fromOffset(12, 0), Size = UDim2.new(0.45, -12, 1, 0), Font = Enum.Font.GothamSemibold, Text = tostring(text), TextSize = 13, TextColor3 = Color3.fromRGB(245, 235, 250), TextXAlignment = Enum.TextXAlignment.Left, Parent = row })
+                styleText(iLbl)
 
                 local box = mk("TextBox", {
                     AnchorPoint = Vector2.new(1, 0.5),
@@ -503,6 +654,7 @@ function UI:CreateWindow(opts)
                     Parent = row,
                 })
                 corner(box, 10)
+                styleText(box)
 
                 box:GetPropertyChangedSignal("Text"):Connect(function()
                     if typeof(onChanged) == "function" then task.spawn(onChanged, box.Text) end
@@ -522,7 +674,8 @@ function UI:CreateWindow(opts)
                 corner(row, 12)
                 stroke(row, 1, Color3.fromRGB(95, 85, 110), 0.75)
                 softGradient(row, Color3.fromRGB(26, 18, 38), Color3.fromRGB(16, 14, 20))
-                mk("TextLabel", { BackgroundTransparency = 1, Position = UDim2.fromOffset(12, 0), Size = UDim2.new(0.45, -12, 1, 0), Font = Enum.Font.GothamSemibold, Text = tostring(text), TextSize = 13, TextColor3 = Color3.fromRGB(235, 235, 245), TextXAlignment = Enum.TextXAlignment.Left, Parent = row })
+                local dLbl = mk("TextLabel", { BackgroundTransparency = 1, Position = UDim2.fromOffset(12, 0), Size = UDim2.new(0.45, -12, 1, 0), Font = Enum.Font.GothamSemibold, Text = tostring(text), TextSize = 13, TextColor3 = Color3.fromRGB(245, 235, 250), TextXAlignment = Enum.TextXAlignment.Left, Parent = row })
+                styleText(dLbl)
 
                 local btn = mk("TextButton", {
                     AnchorPoint = Vector2.new(1, 0.5),
@@ -538,12 +691,13 @@ function UI:CreateWindow(opts)
                     Parent = row,
                 })
                 corner(btn, 10)
+                styleText(btn)
 
                 local menu = mk("Frame", {
                     AnchorPoint = Vector2.new(1, 0),
                     Position = UDim2.new(1, -12, 1, 6),
                     Size = UDim2.new(0.55, -12, 0, 0),
-                    BackgroundColor3 = Color3.fromRGB(14, 14, 16),
+                    BackgroundColor3 = Color3.fromRGB(12, 10, 16),
                     BorderSizePixel = 0,
                     Parent = row,
                     Visible = false,
@@ -551,7 +705,8 @@ function UI:CreateWindow(opts)
                     ZIndex = 30,
                 })
                 corner(menu, 12)
-                stroke(menu, 1, Color3.fromRGB(70, 70, 84), 0.6)
+                stroke(menu, 1, Color3.fromRGB(95, 85, 110), 0.7)
+                softGradient(menu, Color3.fromRGB(18, 12, 28), Color3.fromRGB(10, 10, 12))
 
                 local sc = mk("ScrollingFrame", {
                     BackgroundTransparency = 1,
@@ -1280,7 +1435,7 @@ function UI:CreateWindow(opts)
             return section(titleText)
         end
 
-        api._tabs[name] = { button = btn, accent = accentBar, frame = frame }
+        api._tabs[name] = { button = btn, accent = accentBar, frame = frame, group = cg }
 
         btn.MouseButton1Click:Connect(function()
             pulse(btn)
